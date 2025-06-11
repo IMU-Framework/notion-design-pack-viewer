@@ -1,4 +1,4 @@
-// 修正版 renderBlocks.js：新增支援 list block 與巢狀 toggle 修正
+// 修正版 renderBlocks.js：支援多層巢狀 toggle 與 list 結構
 
 window.renderBlocks = async function(blocks) {
   return await renderBlocksInternal(blocks);
@@ -32,7 +32,6 @@ function renderRichText(richTextArray) {
 async function renderBlock(block) {
   const { type } = block;
   const value = block[type];
-  let childrenHtml = '';
   if (block.has_children && !value.children) {
     try {
       const res = await fetch(`/api/page?pageId=${block.id}`);
@@ -42,9 +41,6 @@ async function renderBlock(block) {
       value.children = [];
     }
   }
-  if (value.children?.length) {
-    childrenHtml = (await renderBlocksInternal(value.children)).join('');
-  }
 
   switch (type) {
     case 'heading_1':
@@ -52,7 +48,8 @@ async function renderBlock(block) {
     case 'heading_3': {
       const Tag = type === 'heading_1' ? 'h1' : type === 'heading_2' ? 'h2' : 'h3';
       const size = type === 'heading_1' ? 'text-3xl' : type === 'heading_2' ? 'text-2xl' : 'text-xl';
-      if (block.has_children) {
+      if (value.children?.length) {
+        const childrenHtml = (await renderBlocksInternal(value.children)).join('');
         return `<details class="group mb-4"><summary class="cursor-pointer list-none font-bold ${size} flex items-center">` +
           `<svg class="w-4 h-4 mr-2 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M6 6L14 10L6 14V6Z" /></svg>` +
           `${renderRichText(value.rich_text)}</summary><div class="pl-6 mt-2 space-y-2 border-l-2 border-gray-200">${childrenHtml}</div></details>`;
@@ -60,13 +57,16 @@ async function renderBlock(block) {
       return `<${Tag} class="${size} font-bold mb-2">${renderRichText(value.rich_text)}</${Tag}>`;
     }
 
-    case 'paragraph':
+    case 'paragraph': {
       return `<p class="mb-4 leading-relaxed">${renderRichText(value.rich_text)}</p>`;
+    }
 
-    case 'toggle':
+    case 'toggle': {
+      const childrenHtml = value.children?.length ? (await renderBlocksInternal(value.children)).join('') : '';
       return `<details class="border rounded p-2 bg-gray-50 mb-4 group"><summary class="cursor-pointer flex items-center">` +
         `<svg class="w-4 h-4 mr-2 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M6 6L14 10L6 14V6Z" /></svg>` +
         `${renderRichText(value.rich_text)}</summary><div class="ml-4 mt-2 space-y-2 border-l-2 border-gray-200 pl-4">${childrenHtml}</div></details>`;
+    }
 
     case 'callout': {
       const emoji = value.icon?.emoji || '';
@@ -92,12 +92,12 @@ async function renderBlock(block) {
 
     case 'bulleted_list_item':
     case 'numbered_list_item': {
-      let itemContent = `<li>${renderRichText(value.rich_text)}</li>`;
+      let nested = '';
       if (value.children?.length) {
-        const nested = await renderBlocksInternal(value.children);
-        itemContent = `<li>${renderRichText(value.rich_text)}<ul class="pl-6 list-disc">${nested.join('')}</ul></li>`;
+        const renderedNested = await renderBlocksInternal(value.children);
+        nested = `<ul class="pl-6 list-disc">${renderedNested.join('')}</ul>`;
       }
-      return { type, html: itemContent };
+      return { type, html: `<li>${renderRichText(value.rich_text)}${nested}</li>` };
     }
 
     case 'divider':
