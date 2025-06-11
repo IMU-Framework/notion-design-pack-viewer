@@ -26,77 +26,94 @@
       <nav class="flex text-sm text-gray-500 space-x-2">
         <a href="#" class="hover:underline">首頁</a>
         <span>/</span>
-        <span id="breadcrumb-current" class="text-gray-700 font-semibold">Loading...</span>
+        <span id="breadcrumb-current" class="text-gray-700 font-semibold">歡迎</span>
       </nav>
     </header>
     <main class="flex-1 overflow-auto">
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full">
-        <!-- iframe 將動態注入 -->
+        <iframe src="https://imu-framework.notion.site/20fbce068710803db8efdbc6b7c21e50" class="w-full h-full border-none"></iframe>
       </div>
     </main>
   </div>
 
   <script>
-    async function fetchNotionData() {
-      const res = await fetch(`/api/notion.js`);
+    const NOTION_DB_URL = "/api/notion.js";
+
+    async function fetchSidebarData() {
+      const res = await fetch(NOTION_DB_URL);
       if (!res.ok) throw new Error("載入失敗");
       return res.json();
     }
 
-    function buildSidebar(data) {
-      const sidebar = document.getElementById('sidebar-nav');
-      sidebar.innerHTML = '';
-
-      const filtered = data.filter(p => p.Active && p.Title);
-      const homePage = filtered.find(p => p.Title === 'Home');
-      const menuItems = filtered
-        .filter(p => p.Title !== 'Home')
-        .sort((a, b) => (a.Order ?? 9999) - (b.Order ?? 9999));
-
-      if (homePage) menuItems.unshift(homePage);
-
-      menuItems.forEach(item => {
-        const el = document.createElement('a');
-        el.textContent = item.Title;
-        el.className = 'block px-3 py-2 rounded-lg hover:bg-blue-100 text-gray-800 text-base font-medium active-nav';
-        if (item.Icon) el.innerHTML = `<span class="mr-2">${item.Icon}</span>${item.Title}`;
-
-        el.onclick = () => {
-          document.querySelectorAll('.active-nav').forEach(e => e.classList.remove('active'));
-          el.classList.add('active');
-          document.getElementById('breadcrumb-current').textContent = item.Title;
-
-          const viewMode = item.View_Mode?.toLowerCase() || 'page';
-          let redirectUrl = '';
-
-          switch (viewMode) {
-            case 'db':
-              redirectUrl = `db-view.html?dbId=${item.Page_ID}`;
-              break;
-            case 'page':
-            default:
-              redirectUrl = `page-view.html?pageId=${item.Page_ID}`;
-              break;
-          }
-
-          window.location.href = redirectUrl;
-        };
-
-        sidebar.appendChild(el);
-      });
+    function updateBreadcrumb(path) {
+      const breadcrumb = document.getElementById('breadcrumb-current');
+      breadcrumb.innerHTML = path.map(p => `<span class="text-gray-700 font-semibold">${p}</span>`).join(' / ');
     }
 
-    async function init() {
+    function clearOutline() {
+      document.querySelectorAll('.outline-nav').forEach(o => o.remove());
+    }
+
+    function loadPage(e, url) {
+      const container = document.getElementById('notion-viewer');
+      container.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+    }
+
+    async function initSidebar() {
+      const sidebar = document.getElementById('sidebar-nav');
+      sidebar.innerHTML = '';
       try {
-        const { pages } = await fetchNotionData();
-        buildSidebar(pages);
-      } catch (e) {
-        document.getElementById('sidebar-nav').textContent = '❌ 無法載入資料';
-        console.error(e);
+        const { pages } = await fetchSidebarData();
+
+        // Group pages by first segment before first hyphen
+        const groups = {};
+        for (const item of pages.filter(p => p.Active && p.Title)) {
+          const groupKey = item.Group || '其他';
+          if (!groups[groupKey]) groups[groupKey] = [];
+          groups[groupKey].push(item);
+        }
+
+        Object.entries(groups).forEach(([groupTitle, items]) => {
+          const details = document.createElement('details');
+          details.classList.add('group');
+          const summary = document.createElement('summary');
+          summary.className = 'flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg';
+          summary.innerHTML = `<span class="flex items-center">${groupTitle}</span><svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>`;
+
+          const ul = document.createElement('ul');
+          ul.className = 'ml-8 mt-2 space-y-1 text-base';
+          items.forEach((item, index) => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.textContent = item.Title;
+            a.className = 'flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav';
+            a.onclick = e => {
+              e.stopPropagation();
+              clearOutline();
+              document.querySelectorAll('.active-nav').forEach(link => link.classList.remove('active'));
+              a.classList.add('active');
+              updateBreadcrumb([groupTitle, item.Title]);
+              const viewMode = item.View_Mode?.toLowerCase() || 'page';
+              const url = viewMode === 'db'
+                ? `db-view.html?dbId=${item.Page_ID}`
+                : `page-view.html?pageId=${item.Page_ID}`;
+              window.location.href = url;
+            };
+            li.appendChild(a);
+            ul.appendChild(li);
+          });
+
+          details.appendChild(summary);
+          details.appendChild(ul);
+          sidebar.appendChild(details);
+        });
+      } catch (err) {
+        sidebar.innerHTML = '❌ 無法載入資料';
+        console.error(err);
       }
     }
 
-    init();
+    initSidebar();
   </script>
 </body>
 </html>
