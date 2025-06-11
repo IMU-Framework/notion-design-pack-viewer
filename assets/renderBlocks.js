@@ -1,3 +1,4 @@
+// 保留原本函式與工具
 const pageId = new URLSearchParams(window.location.search).get("pageId");
 
 async function fetchPageData(pageId) {
@@ -31,10 +32,6 @@ async function renderBlock(block) {
     case 'paragraph':
       return `<p>${renderRichText(value.rich_text)}</p>`;
 
-    case 'bulleted_list_item':
-    case 'numbered_list_item':
-      return `<li>${renderRichText(value.rich_text)}</li>`;
-
     case 'toggle':
       const childrenHtml = value.children ? (await renderBlocks(value.children)).join('') : '';
       return `
@@ -62,28 +59,66 @@ async function renderBlock(block) {
         ? `<img src="${src}" alt="${filename}" class="max-w-full rounded"/>`
         : `<a href="${src}" target="_blank" class="text-blue-600 underline">${filename}</a>`;
 
+    case 'bulleted_list_item':
+    case 'numbered_list_item':
+      return {
+        type: type,
+        html: `<li>${renderRichText(value.rich_text)}</li>`
+      };
+
     default:
       return `<div class="text-sm text-gray-400">[Unsupported block: ${type}]</div>`;
   }
 }
 
+// 🔁 處理 block list，包裝成段落或 ul/ol
 async function renderBlocks(blocks) {
-  const htmlArray = await Promise.all(blocks.map(renderBlock));
-  return htmlArray;
-}
+  const htmlChunks = [];
+  let listBuffer = [];
+  let currentListType = null;
 
-(async () => {
-  const { blocks } = await fetchPageData(pageId);
-
-  // 嵌套 children 處理
   for (const block of blocks) {
     if (block.has_children) {
       const res = await fetch(`/api/page.js?pageId=${block.id}`);
       const childData = await res.json();
       block[block.type].children = childData.blocks;
     }
+
+    const rendered = await renderBlock(block);
+
+    // 如果是 list item，我們收集起來
+    if (typeof rendered === 'object' && (rendered.type === 'bulleted_list_item' || rendered.type === 'numbered_list_item')) {
+      if (!currentListType) currentListType = rendered.type;
+      if (rendered.type !== currentListType) {
+        htmlChunks.push(wrapList(currentListType, listBuffer));
+        listBuffer = [];
+        currentListType = rendered.type;
+      }
+      listBuffer.push(rendered.html);
+    } else {
+      if (listBuffer.length) {
+        htmlChunks.push(wrapList(currentListType, listBuffer));
+        listBuffer = [];
+        currentListType = null;
+      }
+      htmlChunks.push(rendered);
+    }
   }
 
+  if (listBuffer.length) {
+    htmlChunks.push(wrapList(currentListType, listBuffer));
+  }
+
+  return htmlChunks;
+}
+
+function wrapList(type, items) {
+  const tag = type === 'numbered_list_item' ? 'ol' : 'ul';
+  return `<${tag} class="list-inside list-${tag === 'ol' ? 'decimal' : 'disc'} pl-6 space-y-1">${items.join('')}</${tag}>`;
+}
+
+(async () => {
+  const { blocks } = await fetchPageData(pageId);
   const html = await renderBlocks(blocks);
   document.getElementById("notion-content").innerHTML = html.join('');
 })();
