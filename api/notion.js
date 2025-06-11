@@ -13,7 +13,6 @@ export default async function handler(req, res) {
     const pages = await Promise.all(
       response.results.map(async (page) => {
         const props = page.properties;
-
         const title = props["Title"]?.title?.[0]?.plain_text || "Untitled";
         const viewMode = props["View_Mode"]?.select?.name || null;
         const pageId = props["Page_ID"]?.formula?.string || null;
