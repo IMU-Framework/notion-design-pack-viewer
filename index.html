@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jubo台北總部辦公室 設計資料庫</title>
+  <title>Jubo台北總部辦公室設計手冊</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .active-nav {
@@ -144,7 +144,7 @@
               clearOutline();
               document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active"));
               a.classList.add("active");
-              updateBreadcrumb(["Jubo台北總部辦公室", groupTitle, item.Title]);
+              updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
               const url = item.View_Mode?.toLowerCase() === "db"
                 ? `db-view.html?dbId=${item.Page_ID}`
                 : `page-view.html?pageId=${item.Page_ID}`;
@@ -163,7 +163,7 @@
         if (homePage) {
           document.getElementById("nav-header").onclick = () => {
             document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active"));
-            updateBreadcrumb(["Jubo台北總部辦公室", homePage.Title]);
+            updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title]);
             const url = homePage.View_Mode === "db"
               ? `db-view.html?dbId=${homePage.Page_ID}`
               : `page-view.html?pageId=${homePage.Page_ID}`;
