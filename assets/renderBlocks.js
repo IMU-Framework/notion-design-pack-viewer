@@ -29,11 +29,23 @@ function renderRichText(richTextArray) {
   }).join('');
 }
 
-async function fetchChildBlocks(blockId) {
+// 修改：遞迴獲取所有層級的子區塊
+async function fetchChildBlocksRecursive(blockId) {
   try {
     const res = await fetch(`/api/page?pageId=${blockId}`);
     const childData = await res.json();
-    return childData.blocks || [];
+    const blocks = childData.blocks || [];
+    
+    // 遞迴獲取每個子區塊的子區塊
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      if (block.has_children) {
+        const childBlocks = await fetchChildBlocksRecursive(block.id);
+        block[block.type].children = childBlocks;
+      }
+    }
+    
+    return blocks;
   } catch (error) {
     console.error(`Error fetching children for block ${blockId}:`, error);
     return [];
@@ -45,9 +57,9 @@ async function renderBlock(block) {
     const { type } = block;
     const value = block[type];
 
-    // 預先載入子區塊
+    // 預先載入子區塊（使用遞迴方法）
     if (block.has_children && !value.children) {
-      value.children = await fetchChildBlocks(block.id);
+      value.children = await fetchChildBlocksRecursive(block.id);
     }
 
     switch (type) {
