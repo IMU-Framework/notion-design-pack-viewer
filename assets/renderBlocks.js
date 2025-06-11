@@ -1,5 +1,4 @@
-// 新版 renderBlocks.js
-// 整體優化：樣式、互動、支援度更接近 Notion 呈現
+// 修正版 renderBlocks.js：新增支援 list block 與巢狀 toggle 修正
 
 window.renderBlocks = async function(blocks) {
   return await renderBlocksInternal(blocks);
@@ -89,6 +88,16 @@ async function renderBlock(block) {
       const src = value.file?.url || value.external?.url;
       const caption = value.caption?.length ? `<figcaption class="text-center text-gray-500 mt-1">${renderRichText(value.caption)}</figcaption>` : '';
       return `<figure class="mb-4"><img src="${src}" alt="image" class="max-w-full rounded mx-auto"/>${caption}</figure>`;
+    }
+
+    case 'bulleted_list_item':
+    case 'numbered_list_item': {
+      let itemContent = `<li>${renderRichText(value.rich_text)}</li>`;
+      if (value.children?.length) {
+        const nested = await renderBlocksInternal(value.children);
+        itemContent = `<li>${renderRichText(value.rich_text)}<ul class="pl-6 list-disc">${nested.join('')}</ul></li>`;
+      }
+      return { type, html: itemContent };
     }
 
     case 'divider':
