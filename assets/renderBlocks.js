@@ -1,7 +1,7 @@
 const pageId = new URLSearchParams(window.location.search).get("pageId");
 
 async function fetchPageData(pageId) {
-  const res = await fetch(`/api/notion/page.js?pageId=${pageId}`);
+  const res = await fetch(`/api/page.js?pageId=${pageId}`);
   if (!res.ok) throw new Error("載入失敗");
   return res.json();
 }
@@ -40,13 +40,13 @@ async function renderBlock(block) {
       return `
         <details class="border rounded p-2 bg-gray-50">
           <summary>${renderRichText(value.rich_text)}</summary>
-          <div class="ml-4 mt-2">${childrenHtml}</div>
+          <div class="ml-4 mt-2 space-y-2">${childrenHtml}</div>
         </details>
       `;
 
     case 'callout':
       const emoji = value.icon?.emoji || '';
-      return `<div class="p-3 border-l-4 bg-blue-50 border-blue-300 rounded"><span>${emoji}</span> ${renderRichText(value.rich_text)}</div>`;
+      return `<div class="p-3 border-l-4 bg-blue-50 border-blue-300 rounded"><span class="mr-2">${emoji}</span>${renderRichText(value.rich_text)}</div>`;
 
     case 'quote':
       return `<blockquote class="border-l-4 pl-4 italic text-gray-600">${renderRichText(value.rich_text)}</blockquote>`;
@@ -56,7 +56,7 @@ async function renderBlock(block) {
 
     case 'image':
     case 'file':
-      const src = block[type].file?.url || block[type].external?.url;
+      const src = value.file?.url || value.external?.url;
       const filename = src.split("/").pop().split("?")[0];
       return type === 'image'
         ? `<img src="${src}" alt="${filename}" class="max-w-full rounded"/>`
@@ -75,10 +75,10 @@ async function renderBlocks(blocks) {
 (async () => {
   const { blocks } = await fetchPageData(pageId);
 
-  // 處理嵌套 children
+  // 嵌套 children 處理
   for (const block of blocks) {
     if (block.has_children) {
-      const res = await fetch(`/api/notion/page.js?pageId=${block.id}`);
+      const res = await fetch(`/api/page.js?pageId=${block.id}`);
       const childData = await res.json();
       block[block.type].children = childData.blocks;
     }
