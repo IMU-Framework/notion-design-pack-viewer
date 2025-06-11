@@ -8,5 +8,5 @@ notion-design-pack-viewer/
 │    ├── notion.js
 │    └── page.js
 └── assets/
-     └── renderblocks.js           
+     └── renderBlocks.js      
 ```
