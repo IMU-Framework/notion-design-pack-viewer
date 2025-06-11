@@ -1,7 +1,7 @@
 const pageId = new URLSearchParams(window.location.search).get("pageId");
 
 async function fetchPageData(pageId) {
-  const res = await fetch(`/api/page.js?pageId=${pageId}`);
+  const res = await fetch(`/api/page?pageId=${pageId}`);
   if (!res.ok) throw new Error("載入失敗");
   return res.json();
 }
@@ -78,7 +78,7 @@ async function renderBlocks(blocks) {
 
   for (const block of blocks) {
     if (block.has_children) {
-      const res = await fetch(`/api/page.js?pageId=${block.id}`);
+      const res = await fetch(`/api/page?pageId=${block.id}`);
       const childData = await res.json();
       block[block.type].children = childData.blocks;
     }
