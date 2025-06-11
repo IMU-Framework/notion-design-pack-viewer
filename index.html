@@ -65,24 +65,21 @@
       try {
         const { pages } = await fetchSidebarData();
 
-        // Group pages by first segment before first hyphen
-        const groups = {};
-        for (const item of pages.filter(p => p.Active && p.Title)) {
-          const groupKey = item.Group || '其他';
-          if (!groups[groupKey]) groups[groupKey] = [];
-          groups[groupKey].push(item);
-        }
+        const parents = pages.filter(p => p.Active && !p['Parent Item']);
+        const children = pages.filter(p => p.Active && p['Parent Item']);
 
-        Object.entries(groups).forEach(([groupTitle, items]) => {
+        parents.forEach(parent => {
           const details = document.createElement('details');
           details.classList.add('group');
           const summary = document.createElement('summary');
           summary.className = 'flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg';
-          summary.innerHTML = `<span class="flex items-center">${groupTitle}</span><svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>`;
+          summary.innerHTML = `<span class="flex items-center">${parent.Title}</span><svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>`;
 
           const ul = document.createElement('ul');
           ul.className = 'ml-8 mt-2 space-y-1 text-base';
-          items.forEach((item, index) => {
+          const relatedChildren = children.filter(c => c['Parent Item'] === parent.Title);
+
+          relatedChildren.forEach(item => {
             const li = document.createElement('li');
             const a = document.createElement('a');
             a.textContent = item.Title;
@@ -92,7 +89,7 @@
               clearOutline();
               document.querySelectorAll('.active-nav').forEach(link => link.classList.remove('active'));
               a.classList.add('active');
-              updateBreadcrumb([groupTitle, item.Title]);
+              updateBreadcrumb([parent.Title, item.Title]);
               const viewMode = item.View_Mode?.toLowerCase() || 'page';
               const url = viewMode === 'db'
                 ? `db-view.html?dbId=${item.Page_ID}`
