@@ -13,29 +13,12 @@
       background-color: #e0f2fe;
       color: #1e40af;
     }
-    .loading-spinner {
-      border: 3px solid rgba(226, 232, 240, 0.6);
-      border-top: 3px solid #3b82f6;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
   </style>
 </head>
 <body class="h-screen flex bg-gray-100">
   <div class="flex flex-col w-64 bg-white border-r">
     <div id="nav-header" class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b cursor-pointer">Jubo HQ</div>
-    <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">
-      <div class="flex items-center justify-center p-4">
-        <div class="loading-spinner"></div>
-        <span class="ml-2 text-gray-600">載入中...</span>
-      </div>
-    </nav>
+    <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
 
   <div class="flex-1 flex flex-col">
@@ -43,14 +26,7 @@
       <nav class="flex text-sm text-gray-500 space-x-2" id="breadcrumb-nav"></nav>
     </header>
     <main class="flex-1 overflow-auto">
-      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full">
-        <div class="flex flex-col items-center justify-center h-full text-gray-500">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p>請從左側選單選擇頁面</p>
-        </div>
-      </div>
+      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
     </main>
   </div>
 
@@ -58,16 +34,9 @@
     const NOTION_DB_URL = "/api/notion.js";
 
     async function fetchSidebarData() {
-      try {
-        const res = await fetch(NOTION_DB_URL);
-        if (!res.ok) {
-          throw new Error(`載入失敗: ${res.status} ${res.statusText}`);
-        }
-        return res.json();
-      } catch (error) {
-        console.error("資料載入錯誤:", error);
-        throw error;
-      }
+      const res = await fetch(NOTION_DB_URL);
+      if (!res.ok) throw new Error("載入失敗");
+      return res.json();
     }
 
     function updateBreadcrumb(path) {
@@ -78,7 +47,7 @@
         if (idx > 0) {
           const separator = document.createElement("span");
           separator.textContent = "/";
-          separator.className = "text-gray-400 mx-1";
+          separator.className = "text-gray-400";
           breadcrumb.appendChild(separator);
         }
 
@@ -98,96 +67,23 @@
     function renderIcon(icon, title) {
       if (!icon) return title;
       return icon.startsWith("http")
-        ? `<img src="${icon}" class="w-4 h-4 mr-2 inline" alt="" />${title}`
+        ? `<img src="${icon}" class="w-4 h-4 mr-2 inline" />${title}`
         : `<span class="mr-2">${icon}</span>${title}`;
-    }
-
-    function loadPageInViewer(item) {
-      // 檢查 Page ID 是否有效
-      const pageId = item.Page_ID || '';
-      
-      // 除錯用：顯示當前項目的所有屬性
-      console.log("載入頁面:", {
-        Title: item.Title,
-        Page_ID: item.Page_ID,
-        View_Mode: item.View_Mode
-      });
-      
-      if (!pageId || pageId === "null" || pageId === "undefined") {
-        document.getElementById("notion-viewer").innerHTML = `
-          <div class="p-6 text-red-600 border border-red-200 rounded-lg bg-red-50">
-            <h3 class="font-bold text-lg mb-2">⚠️ 無效的頁面</h3>
-            <p>此頁面缺少有效的 Page ID，無法載入內容。</p>
-            <p class="text-sm mt-2">頁面標題: ${item.Title || '未知'}</p>
-            <div class="mt-4 p-3 bg-gray-100 rounded text-xs font-mono text-gray-700">
-              <p>頁面資訊:</p>
-              <pre>${JSON.stringify(item, null, 2)}</pre>
-            </div>
-          </div>`;
-        return;
-      }
-
-      // 顯示載入指示器
-      document.getElementById("notion-viewer").innerHTML = `
-        <div class="flex flex-col items-center justify-center h-full">
-          <div class="loading-spinner mb-4"></div>
-          <p class="text-gray-600">載入頁面中...</p>
-        </div>`;
-
-      // 根據頁面類型生成正確的 URL
-      const url = (item.View_Mode || '').toLowerCase() === "db"
-        ? `db_view.html?pageId=${encodeURIComponent(pageId)}`
-        : `page_view.html?pageId=${encodeURIComponent(pageId)}`;
-
-      console.log("生成的 URL:", url);
-
-      // 創建並載入 iframe
-      const iframe = document.createElement('iframe');
-      iframe.src = url;
-      iframe.className = "w-full h-full border-none";
-      iframe.onload = () => {
-        console.log("iframe 載入完成");
-      };
-      iframe.onerror = (e) => {
-        console.error("iframe 載入失敗", e);
-        document.getElementById("notion-viewer").innerHTML = `
-          <div class="p-6 text-red-600 border border-red-200 rounded-lg bg-red-50">
-            <h3 class="font-bold text-lg mb-2">⚠️ 頁面載入失敗</h3>
-            <p>無法載入頁面內容，請稍後再試。</p>
-            <p class="text-sm mt-2">URL: ${url}</p>
-            <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              重新整理
-            </button>
-          </div>`;
-      };
-
-      document.getElementById("notion-viewer").innerHTML = '';
-      document.getElementById("notion-viewer").appendChild(iframe);
     }
 
     async function initSidebar() {
       const sidebar = document.getElementById("sidebar-nav");
-      
+      const viewer = document.getElementById("notion-viewer");
+      sidebar.innerHTML = "";
+
       try {
         const { pages } = await fetchSidebarData();
-        
-        // 除錯用：顯示所有頁面資料
-        console.log("所有頁面:", pages);
-        
         const activePages = pages.filter((p) => p.Active);
 
-        // 找出 Home 頁面
         const homeCandidates = activePages.filter((p) => p.Title === "Home");
-        console.log("Home 頁面候選:", homeCandidates);
-        
-        const homePage = homeCandidates.length > 0 ? 
-          homeCandidates.sort((a, b) => new Date(a.CreatedTime) - new Date(b.CreatedTime))[0] : null;
-        
-        console.log("選定的 Home 頁面:", homePage);
-        
+        const homePage = homeCandidates.sort((a, b) => new Date(a.CreatedTime) - new Date(b.CreatedTime))[0];
         const nonHomePages = activePages.filter((p) => p.Title !== "Home");
 
-        // 整理分組資料
         const groupMap = {};
         const parentMeta = [];
 
@@ -206,7 +102,6 @@
           }
         });
 
-        // 排序分組內的頁面
         for (const group in groupMap) {
           groupMap[group].sort((a, b) => {
             if (a.Order != null && b.Order != null) return a.Order - b.Order;
@@ -216,7 +111,6 @@
           });
         }
 
-        // 排序父層分組
         parentMeta.sort((a, b) => {
           if (a.Order != null && b.Order != null) return a.Order - b.Order;
           if (a.Order != null) return -1;
@@ -224,18 +118,14 @@
           return new Date(a.CreatedTime) - new Date(b.CreatedTime);
         });
 
-        // 清空側邊欄
-        sidebar.innerHTML = "";
-
-        // 渲染側邊欄分組
+        // ✅ Render sidebar groups (no Home)
         parentMeta.forEach(({ title: groupTitle }) => {
           const details = document.createElement("details");
           details.classList.add("group");
 
           const summary = document.createElement("summary");
           summary.className = "flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg";
-          summary.innerHTML = `
-            <span class="flex items-center">${groupTitle}</span>
+          summary.innerHTML = `<span class="flex items-center">${groupTitle}</span>
             <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>`;
@@ -243,97 +133,52 @@
           const ul = document.createElement("ul");
           ul.className = "ml-8 mt-2 space-y-1 text-base";
 
-          // 渲染分組內的頁面
-          const groupItems = groupMap[groupTitle] || [];
-          groupItems.forEach((item) => {
-            // 檢查 Page_ID 是否有效
-            if (!item.Page_ID) {
-              console.warn(`頁面 "${item.Title}" 缺少 Page_ID`);
-            }
-            
+          groupMap[groupTitle].forEach((item) => {
             const li = document.createElement("li");
             const a = document.createElement("a");
             a.innerHTML = renderIcon(item.Icon, item.Title);
-            a.className = "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
-            
+            a.className =
+              "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
             a.onclick = (e) => {
               e.stopPropagation();
               clearOutline();
-              
-              // 更新活動狀態
               document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active"));
               a.classList.add("active");
-              
-              // 更新麵包屑
               updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
-              
-              // 載入頁面
-              loadPageInViewer(item);
+              const url = item.View_Mode?.toLowerCase() === "db"
+                ? `db-view.html?dbId=${item.Page_ID}`
+                : `page-view.html?pageId=${item.Page_ID}`;
+              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
             };
-            
             li.appendChild(a);
             ul.appendChild(li);
           });
 
-          if (groupItems.length > 0) {
-            details.appendChild(summary);
-            details.appendChild(ul);
-            sidebar.appendChild(details);
-          } else {
-            console.warn(`分組 "${groupTitle}" 沒有有效的子頁面`);
-          }
+          details.appendChild(summary);
+          details.appendChild(ul);
+          sidebar.appendChild(details);
         });
 
-        // 設置 "Jubo HQ" 標題點擊事件，回到 Home 頁面
-        if (homePage && homePage.Page_ID) {
+        // ✅ 點擊 "IMU 導覽" 會回到 Home
+        if (homePage) {
           document.getElementById("nav-header").onclick = () => {
             document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active"));
             updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title]);
-            loadPageInViewer(homePage);
+            const url = homePage.View_Mode === "db"
+              ? `db_view.html?dbId=${homePage.Page_ID}`
+              : `page_view.html?pageId=${homePage.Page_ID}`;
+            viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
           };
 
-          // 預設載入 Home 頁面
+          // ⬇️ 預設載入 Home
           document.getElementById("nav-header").click();
-        } else {
-          // 如果沒有有效的 Home 頁面，顯示提示訊息
-          document.getElementById("nav-header").onclick = null; // 移除點擊事件
-          
-          document.getElementById("notion-viewer").innerHTML = `
-            <div class="p-6 text-orange-600 border border-orange-200 rounded-lg bg-orange-50">
-              <h3 class="font-bold text-lg mb-2">⚠️ 找不到有效的 Home 頁面</h3>
-              <p>系統無法找到有效的 Home 頁面，請從左側選單選擇其他頁面。</p>
-              ${homePage ? `
-              <div class="mt-4 p-3 bg-gray-100 rounded text-xs font-mono text-gray-700">
-                <p>Home 頁面資訊:</p>
-                <pre>${JSON.stringify(homePage, null, 2)}</pre>
-              </div>
-              ` : ''}
-            </div>`;
-        }
-        
-        // 如果沒有任何頁面，顯示提示訊息
-        if (activePages.length === 0) {
-          sidebar.innerHTML = `
-            <div class="p-4 text-orange-600 border border-orange-200 rounded-lg bg-orange-50">
-              <h3 class="font-bold mb-2">⚠️ 沒有可用頁面</h3>
-              <p>系統未找到任何活動頁面。</p>
-            </div>`;
         }
       } catch (err) {
-        // 顯示錯誤訊息
-        sidebar.innerHTML = `
-          <div class="p-4 text-red-600 border border-red-200 rounded-lg bg-red-50">
-            <h3 class="font-bold mb-2">❌ 無法載入資料</h3>
-            <p>${err.message || '發生未知錯誤'}</p>
-            <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              重新整理
-            </button>
-          </div>`;
+        document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
         console.error(err);
       }
     }
 
-    // 初始化側邊欄
     initSidebar();
   </script>
 </body>
