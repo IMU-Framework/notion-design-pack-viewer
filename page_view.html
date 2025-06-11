@@ -11,5 +11,13 @@
     <article id="notion-content" class="space-y-4"></article>
   </main>
   <script src="/assets/renderBlocks.js"></script>
+  <script>
+  const pageId = new URLSearchParams(window.location.search).get("pageId");
+  if (!pageId) {
+    document.getElementById("notion-content").innerHTML =
+      '<p class="text-red-600">❌ 無法載入：缺少 pageId</p>';
+  }
+</script>
+
 </body>
 </html>
