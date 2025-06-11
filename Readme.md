@@ -1,0 +1,7 @@
+'''
+imu-guideline-portal/
+├── index.html             # 主入口 + sidebar + default viewer
+├── page-view.html         # 單一 Notion Page 顯示模式
+├── db-view.html           # 資料庫（例如分組清單或表格）顯示模式
+└── assets/                # 圖片、樣式、icon 等靜態資源
+'''
