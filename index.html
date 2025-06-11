@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IMU Guideline Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .active-nav {
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .active-nav.active {
+      background-color: #e0f2fe;
+      color: #1e40af;
+    }
+  </style>
+</head>
+<body class="h-screen flex bg-gray-100">
+  <div class="flex flex-col w-64 bg-white border-r">
+    <div class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b">IMU 導覽</div>
+    <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
+  </div>
+
+  <div class="flex-1 flex flex-col">
+    <header id="breadcrumb-header" class="bg-white px-6 py-3 shadow">
+      <nav class="flex text-sm text-gray-500 space-x-2">
+        <a href="#" class="hover:underline">首頁</a>
+        <span>/</span>
+        <span id="breadcrumb-current" class="text-gray-700 font-semibold">Loading...</span>
+      </nav>
+    </header>
+    <main class="flex-1 overflow-auto">
+      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full">
+        <!-- iframe 將動態注入 -->
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const NOTION_TOKEN = "__REPLACE_WITH_ENV_TOKEN__";
+    const DATABASE_ID = "__REPLACE_WITH_ENV_DBID__";
+
+    async function fetchNotionData() {
+      const res = await fetch(`/api/notion.js?pageId=${DATABASE_ID}`);
+      if (!res.ok) throw new Error("載入失敗");
+      return res.json();
+    }
+
+    function buildSidebar(data) {
+      const sidebar = document.getElementById('sidebar-nav');
+      sidebar.innerHTML = '';
+
+      const filtered = data.filter(p => p.Active && p.Title);
+      const homePage = filtered.find(p => p.Title === 'Home');
+      const menuItems = filtered
+        .filter(p => p.Title !== 'Home')
+        .sort((a, b) => (a.Order ?? 9999) - (b.Order ?? 9999));
+
+      if (homePage) menuItems.unshift(homePage);
+
+      menuItems.forEach(item => {
+        const el = document.createElement('a');
+        el.textContent = item.Title;
+        el.className = 'block px-3 py-2 rounded-lg hover:bg-blue-100 text-gray-800 text-base font-medium active-nav';
+        if (item.Icon) el.innerHTML = `<span class="mr-2">${item.Icon}</span>${item.Title}`;
+
+        el.onclick = () => {
+          document.querySelectorAll('.active-nav').forEach(e => e.classList.remove('active'));
+          el.classList.add('active');
+          document.getElementById('breadcrumb-current').textContent = item.Title;
+
+          const viewMode = item.View_Mode?.toLowerCase() || 'page';
+          let redirectUrl = '';
+
+          switch (viewMode) {
+            case 'db':
+              redirectUrl = `db-view.html?dbId=${item.Page_ID}`;
+              break;
+            case 'page':
+            default:
+              redirectUrl = `page-view.html?pageId=${item.Page_ID}`;
+              break;
+          }
+
+          window.location.href = redirectUrl;
+        };
+
+        sidebar.appendChild(el);
+      });
+    }
+
+    async function init() {
+      try {
+        const { pages } = await fetchNotionData();
+        buildSidebar(pages);
+      } catch (e) {
+        document.getElementById('sidebar-nav').textContent = '❌ 無法載入資料';
+        console.error(e);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
