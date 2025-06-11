@@ -3,11 +3,18 @@ import { Client } from "@notionhq/client";
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID;
 
+// ⬇️ 工具函數：解析 Order 欄位為數字或保留為文字
+function parseOrderValue(val) {
+  if (!val) return null;
+  const num = parseFloat(val);
+  return isNaN(num) ? val.trim() : num;
+}
+
 export default async function handler(req, res) {
   try {
     const response = await notion.databases.query({
       database_id: databaseId,
-      sorts: [{ property: "Order", direction: "ascending" }],
+      sorts: [], // ➤ 改為前端處理 Order 排序
     });
 
     const pages = await Promise.all(
@@ -32,6 +39,10 @@ export default async function handler(req, res) {
           }
         }
 
+        // ⬇️ Order: 從文字欄位解析
+        const orderText = props["Order"]?.rich_text?.[0]?.plain_text || null;
+        const parsedOrder = parseOrderValue(orderText);
+
         return {
           Title: title,
           View_Mode: viewMode,
@@ -39,7 +50,7 @@ export default async function handler(req, res) {
           Active: active,
           Group: group,
           Icon: icon,
-          Order: props["Order"]?.number ?? null,
+          Order: parsedOrder,
           CreatedTime: page.created_time,
         };
       })
@@ -51,4 +62,3 @@ export default async function handler(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
-
