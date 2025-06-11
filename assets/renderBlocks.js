@@ -1,6 +1,4 @@
-// renderBlocks.js - 輕量化版本
-// 放棄複雜的巢狀結構處理，專注於基本功能的穩定實現
-// 加強 callout 圖標支持
+// renderBlocks.js - 支援列表巢狀結構的版本
 
 window.renderBlocks = async function(blocks) {
   return await renderBlocksInternal(blocks);
@@ -31,18 +29,6 @@ function renderRichText(richTextArray) {
   }).join('');
 }
 
-// 簡化的子區塊獲取函數 - 只獲取直接子區塊，不做遞迴處理
-async function fetchChildBlocks(blockId) {
-  try {
-    const res = await fetch(`/api/page?pageId=${blockId}`);
-    const childData = await res.json();
-    return childData.blocks || [];
-  } catch (error) {
-    console.error(`Error fetching children for block ${blockId}:`, error);
-    return [];
-  }
-}
-
 // 渲染 callout 圖標
 function renderCalloutIcon(icon) {
   if (!icon) return '';
@@ -66,11 +52,6 @@ async function renderBlock(block) {
   try {
     const { type } = block;
     const value = block[type];
-
-    // 獲取子區塊（僅第一層）
-    if (block.has_children && !value.children && ['toggle', 'callout', 'quote'].includes(type)) {
-      value.children = await fetchChildBlocks(block.id);
-    }
 
     switch (type) {
       case 'heading_1':
@@ -170,17 +151,35 @@ async function renderBlock(block) {
         </div>`;
       }
 
-      case 'bulleted_list_item':
+      case 'bulleted_list_item': {
+        let itemContent = renderRichText(value.rich_text);
+        
+        // 處理子項目
+        if (value.children && value.children.length > 0) {
+          const childrenHtml = await renderBlocksInternal(value.children);
+          itemContent += childrenHtml.join('');
+        }
+        
         return { 
           type, 
-          html: `<li>${renderRichText(value.rich_text)}</li>` 
+          html: `<li>${itemContent}</li>` 
         };
+      }
 
-      case 'numbered_list_item':
+      case 'numbered_list_item': {
+        let itemContent = renderRichText(value.rich_text);
+        
+        // 處理子項目
+        if (value.children && value.children.length > 0) {
+          const childrenHtml = await renderBlocksInternal(value.children);
+          itemContent += childrenHtml.join('');
+        }
+        
         return { 
           type, 
-          html: `<li>${renderRichText(value.rich_text)}</li>` 
+          html: `<li>${itemContent}</li>` 
         };
+      }
 
       case 'divider':
         return '<hr class="my-6 border-t border-gray-300">';
@@ -217,12 +216,20 @@ async function renderBlock(block) {
 
       case 'to_do': {
         const checked = value.checked ? 'checked' : '';
-        return `
+        let content = `
           <div class="flex items-start mb-2">
             <input type="checkbox" ${checked} class="mt-1 mr-2" disabled>
             <div class="${value.checked ? 'line-through text-gray-500' : ''}">${renderRichText(value.rich_text)}</div>
           </div>
         `;
+        
+        // 處理子項目
+        if (value.children && value.children.length > 0) {
+          const childrenHtml = await renderBlocksInternal(value.children);
+          content += `<div class="ml-6">${childrenHtml.join('')}</div>`;
+        }
+        
+        return content;
       }
 
       case 'bookmark': {
