@@ -31,7 +31,7 @@ export default async function handler(req, res) {
           View_Mode: props["View_Mode"]?.select?.name || null,
           Page_ID: props["Page_ID"]?.formula?.string || null,
           Active: props["Active"]?.checkbox || false,
-          "Parent Item": parentItem,
+          "Parent item": parentItem,
           Icon: page.icon?.emoji || null,
         };
       })
