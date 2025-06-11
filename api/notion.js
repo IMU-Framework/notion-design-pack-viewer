@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       const pageId = props["Page_ID"]?.formula?.string || null;
       const active = props["Active"]?.checkbox || false;
       const icon = page.icon?.emoji || null;
-      const group = props["Group"]?.select?.name || null;
+      const group = props["Group"]?.select?.plain_text || null;
 
       return {
         Title: title,
