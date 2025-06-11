@@ -5,9 +5,10 @@ const databaseId = process.env.NOTION_DATABASE_ID;
 
 // ⬇️ 工具函數：解析 Order 欄位為數字或保留為文字
 function parseOrderValue(val) {
-  if (!val) return null;
-  const num = parseFloat(val);
-  return isNaN(num) ? val.trim() : num;
+  if (!val || typeof val !== 'string' || val.trim() === '') return null;
+  const trimmed = val.trim();
+  const num = parseFloat(trimmed);
+  return isNaN(num) ? trimmed : num;
 }
 
 export default async function handler(req, res) {
@@ -40,7 +41,9 @@ export default async function handler(req, res) {
         }
 
         // ⬇️ Order: 從文字欄位解析
-        const orderText = props["Order"]?.rich_text?.[0]?.plain_text || null;
+        const orderText = Array.isArray(props["Order"]?.rich_text) && props["Order"].rich_text.length > 0
+          ? props["Order"].rich_text[0].plain_text
+          : null;
         const parsedOrder = parseOrderValue(orderText);
 
         return {
