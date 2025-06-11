@@ -1,191 +1,171 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IMU Guideline Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      .active-nav {
-        transition: background-color 0.2s, color 0.2s;
-      }
-      .active-nav.active {
-        background-color: #e0f2fe;
-        color: #1e40af;
-      }
-    </style>
-  </head>
-  <body class="h-screen flex bg-gray-100">
-    <!-- Sidebar -->
-    <div class="flex flex-col w-64 bg-white border-r">
-      <div class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b">IMU 導覽</div>
-      <nav id="sidebar-nav" class="flex-1 overflow-y-auto p-4 space-y-4">Loading...</nav>
-    </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IMU Guideline Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .active-nav {
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .active-nav.active {
+      background-color: #e0f2fe;
+      color: #1e40af;
+    }
+  </style>
+</head>
+<body class="h-screen flex bg-gray-100">
+  <div class="flex flex-col w-64 bg-white border-r">
+    <div class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b">IMU 導覽</div>
+    <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
+  </div>
 
-    <!-- Main Content -->
-    <div class="flex-1 flex flex-col">
-      <header id="breadcrumb-header" class="bg-white px-6 py-3 shadow">
-        <nav class="flex text-sm text-gray-500 space-x-2">
-          <a href="#" class="hover:underline">首頁</a>
-          <span>/</span>
-          <span id="breadcrumb-current" class="text-gray-700 font-semibold">歡迎</span>
-        </nav>
-      </header>
-      <main class="flex-1 overflow-auto">
-        <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full">
-          <iframe
-            src="https://imu-framework.notion.site/20fbce068710803db8efdbc6b7c21e50"
-            class="w-full h-full border-none"
-          ></iframe>
-        </div>
-      </main>
-    </div>
+  <div class="flex-1 flex flex-col">
+    <header id="breadcrumb-header" class="bg-white px-6 py-3 shadow">
+      <nav class="flex text-sm text-gray-500 space-x-2">
+        <a href="#" class="hover:underline">首頁</a>
+        <span>/</span>
+        <span id="breadcrumb-current" class="text-gray-700 font-semibold">歡迎</span>
+      </nav>
+    </header>
+    <main class="flex-1 overflow-auto">
+      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full">
+        <iframe src="https://imu-framework.notion.site/20fbce068710803db8efdbc6b7c21e50" class="w-full h-full border-none"></iframe>
+      </div>
+    </main>
+  </div>
 
-    <!-- Script -->
-    <script>
-      const NOTION_DB_URL = "/api/notion.js";
+  <script>
+    const NOTION_DB_URL = "/api/notion.js";
 
-      async function fetchSidebarData() {
-        const res = await fetch(NOTION_DB_URL);
-        if (!res.ok) throw new Error("載入失敗");
-        return res.json();
-      }
+    async function fetchSidebarData() {
+      const res = await fetch(NOTION_DB_URL);
+      if (!res.ok) throw new Error("載入失敗");
+      return res.json();
+    }
 
-      function updateBreadcrumb(path) {
-        const breadcrumb = document.getElementById("breadcrumb-current");
-        breadcrumb.innerHTML = path
-          .map((p, idx) =>
-            idx === path.length - 1
-              ? `<span class="text-gray-700 font-semibold">${p}</span>`
-              : `<span class="text-gray-500">${p}</span>`
-          )
-          .join('<span class="text-gray-400"> / </span>');
-      }
+    function updateBreadcrumb(path) {
+      const breadcrumb = document.getElementById('breadcrumb-current');
+      breadcrumb.innerHTML = path
+        .map((p, idx) =>
+          idx === path.length - 1
+            ? `<span class="text-gray-700 font-semibold">${p}</span>`
+            : `<span class="text-gray-500">${p}</span>`
+        )
+        .join('<span class="text-gray-400"> / </span>');
+    }
 
-      function clearOutline() {
-        document.querySelectorAll(".outline-nav").forEach((o) => o.remove());
-      }
+    function clearOutline() {
+      document.querySelectorAll('.outline-nav').forEach(o => o.remove());
+    }
 
-      function loadPage(e, url) {
-        const container = document.getElementById("notion-viewer");
-        container.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-      }
+    async function initSidebar() {
+      const sidebar = document.getElementById('sidebar-nav');
+      sidebar.innerHTML = '';
 
-      async function initSidebar() {
-        const sidebar = document.getElementById("sidebar-nav");
-        sidebar.innerHTML = "";
-        try {
-          const { pages } = await fetchSidebarData();
-          const activePages = pages.filter((p) => p.Active);
+      try {
+        const { pages } = await fetchSidebarData();
+        const activePages = pages.filter(p => p.Active);
 
-          const homePage = activePages.find((p) => p.Title === "Home");
-          const nonHomePages = activePages.filter((p) => p.Title !== "Home");
+        const homePage = activePages.find(p => p.Title === 'Home');
+        const nonHomePages = activePages.filter(p => p.Title !== 'Home');
 
-          const groupMap = {};
-          const parentMeta = [];
+        const groupMap = {};
+        const parentMeta = [];
 
-          nonHomePages.forEach((page) => {
-            const group = page.Group?.trim();
-            if (group) {
-              if (!groupMap[group]) groupMap[group] = [];
-              groupMap[group].push(page);
-            } else {
-              groupMap[page.Title] = [];
-              parentMeta.push({
-                title: page.Title,
-                Order: page.Order ?? null,
-                CreatedTime: page.CreatedTime,
-              });
-            }
-          });
-
-          // 排序子項
-          for (const group in groupMap) {
-            groupMap[group].sort((a, b) => {
-              if (a.Order != null && b.Order != null) return a.Order - b.Order;
-              if (a.Order != null) return -1;
-              if (b.Order != null) return 1;
-              return new Date(a.CreatedTime) - new Date(b.CreatedTime);
+        nonHomePages.forEach(page => {
+          const group = typeof page.Group === 'string' ? page.Group.trim() : null;
+          if (group && group.length > 0) {
+            if (!groupMap[group]) groupMap[group] = [];
+            groupMap[group].push(page);
+          } else {
+            groupMap[page.Title] = [];
+            parentMeta.push({
+              title: page.Title,
+              Order: page.Order ?? null,
+              CreatedTime: page.CreatedTime
             });
           }
+        });
 
-          // 排序父項（母項）
-          parentMeta.sort((a, b) => {
-            if (a.Order != null && b.Order != null) return a.Order - b.Order;
-            if (a.Order != null) return -1;
-            if (b.Order != null) return 1;
+        for (const group in groupMap) {
+          groupMap[group].sort((a, b) => {
+            const aOrder = a.Order ?? '';
+            const bOrder = b.Order ?? '';
+            if (aOrder !== bOrder) return aOrder.localeCompare(bOrder, undefined, { numeric: true, sensitivity: 'base' });
             return new Date(a.CreatedTime) - new Date(b.CreatedTime);
           });
+        }
 
-          // 插入 Home 頁
-          if (homePage) {
-            const homeEl = document.createElement("a");
-            homeEl.innerHTML = `${homePage.Icon ? `<span class="mr-2">${homePage.Icon}</span>` : ""}${homePage.Title}`;
-            homeEl.className =
-              "block px-3 py-2 rounded-lg hover:bg-blue-100 text-gray-800 text-base font-medium active-nav";
-            homeEl.onclick = () => {
-              document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active"));
-              homeEl.classList.add("active");
-              updateBreadcrumb(["首頁"]);
-              const url =
-                homePage.View_Mode === "db"
-                  ? `db-view.html?dbId=${homePage.Page_ID}`
-                  : `page-view.html?pageId=${homePage.Page_ID}`;
+        parentMeta.sort((a, b) => {
+          const aOrder = a.Order ?? '';
+          const bOrder = b.Order ?? '';
+          if (aOrder !== bOrder) return aOrder.localeCompare(bOrder, undefined, { numeric: true, sensitivity: 'base' });
+          return new Date(a.CreatedTime) - new Date(b.CreatedTime);
+        });
+
+        if (homePage) {
+          const homeEl = document.createElement('a');
+          homeEl.innerHTML = `${homePage.Icon ? `<span class="mr-2">${homePage.Icon}</span>` : ''}${homePage.Title}`;
+          homeEl.className = 'block px-3 py-2 rounded-lg hover:bg-blue-100 text-gray-800 text-base font-medium active-nav';
+          homeEl.onclick = () => {
+            document.querySelectorAll('.active-nav').forEach(e => e.classList.remove('active'));
+            homeEl.classList.add('active');
+            updateBreadcrumb(['首頁']);
+            const url = homePage.View_Mode === 'db'
+              ? `db-view.html?dbId=${homePage.Page_ID}`
+              : `page-view.html?pageId=${homePage.Page_ID}`;
+            window.location.href = url;
+          };
+          sidebar.appendChild(homeEl);
+        }
+
+        parentMeta.forEach(({ title: groupTitle }) => {
+          const details = document.createElement('details');
+          details.classList.add('group');
+          const summary = document.createElement('summary');
+          summary.className = 'flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg';
+          summary.innerHTML = `<span class="flex items-center">${groupTitle}</span>
+            <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>`;
+
+          const ul = document.createElement('ul');
+          ul.className = 'ml-8 mt-2 space-y-1 text-base';
+
+          groupMap[groupTitle].forEach(item => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.innerHTML = `${item.Icon ? `<span class="mr-2">${item.Icon}</span>` : ''}${item.Title}`;
+            a.className = 'flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav';
+            a.onclick = e => {
+              e.stopPropagation();
+              clearOutline();
+              document.querySelectorAll('.active-nav').forEach(link => link.classList.remove('active'));
+              a.classList.add('active');
+              updateBreadcrumb(['首頁', groupTitle, item.Title]);
+              const url = item.View_Mode?.toLowerCase() === 'db'
+                ? `db-view.html?dbId=${item.Page_ID}`
+                : `page-view.html?pageId=${item.Page_ID}`;
               window.location.href = url;
             };
-            sidebar.appendChild(homeEl);
-          }
-
-          // 插入父群組（並渲染其子項）
-          parentMeta.forEach(({ title: groupTitle }) => {
-            const details = document.createElement("details");
-            details.classList.add("group");
-
-            const summary = document.createElement("summary");
-            summary.className =
-              "flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg";
-            summary.innerHTML = `
-              <span class="flex items-center">${groupTitle}</span>
-              <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-              </svg>`;
-
-            const ul = document.createElement("ul");
-            ul.className = "ml-8 mt-2 space-y-1 text-base";
-
-            groupMap[groupTitle].forEach((item) => {
-              const li = document.createElement("li");
-              const a = document.createElement("a");
-              a.innerHTML = `${item.Icon ? `<span class="mr-2">${item.Icon}</span>` : ""}${item.Title}`;
-              a.className =
-                "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
-              a.onclick = (e) => {
-                e.stopPropagation();
-                clearOutline();
-                document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active"));
-                a.classList.add("active");
-                updateBreadcrumb(["首頁", groupTitle, item.Title]);
-                const url =
-                  item.View_Mode?.toLowerCase() === "db"
-                    ? `db-view.html?dbId=${item.Page_ID}`
-                    : `page-view.html?pageId=${item.Page_ID}`;
-                window.location.href = url;
-              };
-              li.appendChild(a);
-              ul.appendChild(li);
-            });
-
-            details.appendChild(summary);
-            details.appendChild(ul);
-            sidebar.appendChild(details);
+            li.appendChild(a);
+            ul.appendChild(li);
           });
-        } catch (err) {
-          document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
-          console.error(err);
-        }
-      }
 
-      initSidebar();
-    </script>
-  </body>
+          details.appendChild(summary);
+          details.appendChild(ul);
+          sidebar.appendChild(details);
+        });
+
+      } catch (err) {
+        document.getElementById('sidebar-nav').innerHTML = '❌ 無法載入資料';
+        console.error(err);
+      }
+    }
+
+    initSidebar();
+  </script>
+</body>
 </html>
