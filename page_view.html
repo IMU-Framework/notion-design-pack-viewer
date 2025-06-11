@@ -12,28 +12,5 @@
   </main>
 
   <script src="/assets/renderBlocks.js"></script>
-  <script>
-    const pageId = new URLSearchParams(window.location.search).get("pageId");
-
-    if (!pageId) {
-      document.getElementById("notion-content").innerHTML =
-        '<p class="text-red-600">❌ 無法載入：缺少 pageId</p>';
-    } else {
-      document.getElementById("notion-content").innerHTML =
-        '<p class="text-gray-500">🔄 載入中...</p>';
-
-      (async () => {
-        try {
-          const { blocks } = await fetchPageData(pageId);
-          const html = await renderBlocks(blocks);
-          document.getElementById("notion-content").innerHTML = html.join('');
-        } catch (err) {
-          document.getElementById("notion-content").innerHTML =
-            `<p class="text-red-600">❌ 錯誤：${err.message}</p>`;
-          console.error(err);
-        }
-      })();
-    }
-  </script>
 </body>
 </html>
