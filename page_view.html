@@ -19,7 +19,9 @@
       document.getElementById("notion-content").innerHTML =
         '<p class="text-red-600">❌ 無法載入：缺少 pageId</p>';
     } else {
-      document.getElementById("notion-content").innerHTML = '<p class="text-gray-500">🔄 正在載入內容...</p>';
+      document.getElementById("notion-content").innerHTML =
+        '<p class="text-gray-500">🔄 載入中...</p>';
+
       (async () => {
         try {
           const { blocks } = await fetchPageData(pageId);
