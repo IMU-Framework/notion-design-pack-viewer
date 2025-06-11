@@ -1,4 +1,3 @@
-// 保留原本函式與工具
 const pageId = new URLSearchParams(window.location.search).get("pageId");
 
 async function fetchPageData(pageId) {
