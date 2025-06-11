@@ -67,8 +67,8 @@
 
         // Group pages by first segment before first hyphen
         const groups = {};
-        for (const item of pages.filter(p => p.Active && p.Title)) {
-          const groupKey = item.Group || '其他';
+        for (const item of pages.filter(p => p.Active && p.Title && item.Group)) {
+          const groupKey = item.Group;
           if (!groups[groupKey]) groups[groupKey] = [];
           groups[groupKey].push(item);
         }
