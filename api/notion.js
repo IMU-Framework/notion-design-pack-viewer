@@ -3,7 +3,7 @@ import { Client } from "@notionhq/client";
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID;
 
-// ⬇️ 工具函數：解析 Order 欄位為數字或保留為文字
+// 工具函數：將 Order 欄位轉為數字或保留文字
 function parseOrderValue(val) {
   if (!val || typeof val !== 'string' || val.trim() === '') return null;
   const trimmed = val.trim();
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   try {
     const response = await notion.databases.query({
       database_id: databaseId,
-      sorts: [], // ➤ 改為前端處理 Order 排序
+      sorts: [], // 排序交由前端處理
     });
 
     const pages = await Promise.all(
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         const active = props["Active"]?.checkbox || false;
         const icon = page.icon?.emoji || null;
 
-        // 處理 Group（Relation -> Title）
+        // 取得 Group（Relation -> Title）
         let group = null;
         const groupRel = props["Group"]?.relation;
         if (groupRel && groupRel.length > 0) {
@@ -40,10 +40,15 @@ export default async function handler(req, res) {
           }
         }
 
-        // ⬇️ Order: 從文字欄位解析
-        const orderText = Array.isArray(props["Order"]?.rich_text) && props["Order"].rich_text.length > 0
-          ? props["Order"].rich_text[0].plain_text
-          : null;
+        // ⬇️ Order 欄位內容從 Rich Text 或 Text 類型解析
+        const orderRaw = props["Order"];
+        let orderText = null;
+        if (orderRaw?.type === 'rich_text') {
+          orderText = orderRaw.rich_text?.[0]?.plain_text || null;
+        } else if (orderRaw?.type === 'text') {
+          orderText = orderRaw.text?.[0]?.plain_text || null;
+        }
+
         const parsedOrder = parseOrderValue(orderText);
 
         return {
