@@ -115,9 +115,3 @@ function wrapList(type, items) {
   const tag = type === 'numbered_list_item' ? 'ol' : 'ul';
   return `<${tag} class="list-inside list-${tag === 'ol' ? 'decimal' : 'disc'} pl-6 space-y-1">${items.join('')}</${tag}>`;
 }
-
-(async () => {
-  const { blocks } = await fetchPageData(pageId);
-  const html = await renderBlocks(blocks);
-  document.getElementById("notion-content").innerHTML = html.join('');
-})();
