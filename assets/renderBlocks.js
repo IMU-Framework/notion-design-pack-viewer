@@ -1,4 +1,5 @@
-// renderBlocks.js - 支援列表巢狀結構的版本
+// renderBlocks.js - 全面優化版本
+// 支援所有類型的巢狀結構，包括 Headings Toggle 和 Callout 內容包含
 
 window.renderBlocks = async function(blocks) {
   return await renderBlocksInternal(blocks);
@@ -54,26 +55,78 @@ async function renderBlock(block) {
     const value = block[type];
 
     switch (type) {
-      case 'heading_1':
-        return `<h1 class="text-3xl font-bold mb-2">${renderRichText(value.rich_text)}</h1>`;
+      case 'heading_1': {
+        let content = `<h1 class="text-3xl font-bold mb-2">${renderRichText(value.rich_text)}</h1>`;
+        
+        // 支援標題的 Toggle 功能
+        if (value.is_toggleable && value.children && value.children.length > 0) {
+          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+          content = `<details class="mb-4">
+            <summary class="text-3xl font-bold mb-2 cursor-pointer">${renderRichText(value.rich_text)}</summary>
+            <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
+          </details>`;
+        }
+        
+        return content;
+      }
       
-      case 'heading_2':
-        return `<h2 class="text-2xl font-bold mb-2">${renderRichText(value.rich_text)}</h2>`;
+      case 'heading_2': {
+        let content = `<h2 class="text-2xl font-bold mb-2">${renderRichText(value.rich_text)}</h2>`;
+        
+        // 支援標題的 Toggle 功能
+        if (value.is_toggleable && value.children && value.children.length > 0) {
+          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+          content = `<details class="mb-4">
+            <summary class="text-2xl font-bold mb-2 cursor-pointer">${renderRichText(value.rich_text)}</summary>
+            <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
+          </details>`;
+        }
+        
+        return content;
+      }
       
-      case 'heading_3':
-        return `<h3 class="text-xl font-bold mb-2">${renderRichText(value.rich_text)}</h3>`;
+      case 'heading_3': {
+        let content = `<h3 class="text-xl font-bold mb-2">${renderRichText(value.rich_text)}</h3>`;
+        
+        // 支援標題的 Toggle 功能
+        if (value.is_toggleable && value.children && value.children.length > 0) {
+          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+          content = `<details class="mb-4">
+            <summary class="text-xl font-bold mb-2 cursor-pointer">${renderRichText(value.rich_text)}</summary>
+            <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
+          </details>`;
+        }
+        
+        return content;
+      }
 
-      case 'paragraph':
-        return `<p class="mb-4 leading-relaxed">${renderRichText(value.rich_text)}</p>`;
+      case 'paragraph': {
+        let content = `<p class="mb-4 leading-relaxed">${renderRichText(value.rich_text)}</p>`;
+        
+        // 處理段落的子區塊
+        if (value.children && value.children.length > 0) {
+          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+          content = `<div class="mb-4">
+            <p class="leading-relaxed">${renderRichText(value.rich_text)}</p>
+            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml}</div>
+          </div>`;
+        }
+        
+        return content;
+      }
 
       case 'toggle': {
-        let content = `<details class="border rounded p-2 bg-gray-50 mb-4 group"><summary class="cursor-pointer flex items-center">` +
-          `<svg class="w-4 h-4 mr-2 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M6 6L14 10L6 14V6Z" /></svg>` +
-          `${renderRichText(value.rich_text)}</summary>`;
+        let content = `<details class="border rounded p-2 bg-gray-50 mb-4 group">
+          <summary class="cursor-pointer flex items-center">
+            <svg class="w-4 h-4 mr-2 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M6 6L14 10L6 14V6Z" />
+            </svg>
+            ${renderRichText(value.rich_text)}
+          </summary>`;
         
         if (value.children && value.children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content += `<div class="ml-4 mt-2 space-y-2 border-l-2 border-gray-200 pl-4">${childrenHtml}</div>`;
+          content += `<div class="ml-4 mt-2 space-y-2 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>`;
         }
         
         content += `</details>`;
@@ -106,24 +159,39 @@ async function renderBlock(block) {
           }
         }
         
-        let content = `<div class="p-4 border-l-4 ${bgColor} ${borderColor} rounded shadow-sm mb-4 flex items-start">` +
-          `${iconHtml}<div>${renderRichText(value.rich_text)}</div></div>`;
+        // 如果沒有子區塊，直接渲染
+        if (!value.children || value.children.length === 0) {
+          return `<div class="p-4 border-l-4 ${bgColor} ${borderColor} rounded shadow-sm mb-4 flex items-start">
+            ${iconHtml}<div>${renderRichText(value.rich_text)}</div>
+          </div>`;
+        }
         
+        // 如果有子區塊，將所有內容包含在同一個色塊容器內
+        const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+        return `<div class="p-4 border-l-4 ${bgColor} ${borderColor} rounded shadow-sm mb-4">
+          <div class="flex items-start mb-2">
+            ${iconHtml}<div>${renderRichText(value.rich_text)}</div>
+          </div>
+          <div class="ml-6 mt-2 border-l-2 ${borderColor} pl-4">
+            ${childrenHtml}
+          </div>
+        </div>`;
+      }
+
+      case 'quote': {
+        let content = `<blockquote class="border-l-4 pl-4 italic text-gray-600 mb-4">${renderRichText(value.rich_text)}</blockquote>`;
+        
+        // 處理引用的子區塊
         if (value.children && value.children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
           content = `<div class="mb-4">
-            <div class="p-4 border-l-4 ${bgColor} ${borderColor} rounded-t shadow-sm flex items-start">
-              ${iconHtml}<div>${renderRichText(value.rich_text)}</div>
-            </div>
-            <div class="pl-6 border-l ${borderColor} ml-4">${childrenHtml}</div>
+            <blockquote class="border-l-4 pl-4 italic text-gray-600">${renderRichText(value.rich_text)}</blockquote>
+            <div class="ml-8 pl-4 border-l-2 border-gray-300 mt-2">${childrenHtml}</div>
           </div>`;
         }
         
         return content;
       }
-
-      case 'quote':
-        return `<blockquote class="border-l-4 pl-4 italic text-gray-600 mb-4">${renderRichText(value.rich_text)}</blockquote>`;
 
       case 'code': {
         const lang = value.language || 'plain';
@@ -157,7 +225,17 @@ async function renderBlock(block) {
         // 處理子項目
         if (value.children && value.children.length > 0) {
           const childrenHtml = await renderBlocksInternal(value.children);
-          itemContent += childrenHtml.join('');
+          // 檢查子項目是否包含列表項目
+          const hasListItems = value.children.some(child => 
+            child.type === 'bulleted_list_item' || child.type === 'numbered_list_item');
+          
+          if (hasListItems) {
+            // 如果子項目包含列表項目，直接添加
+            itemContent += childrenHtml.join('');
+          } else {
+            // 如果子項目不包含列表項目，添加額外的縮進
+            itemContent += `<div class="mt-2">${childrenHtml.join('')}</div>`;
+          }
         }
         
         return { 
@@ -172,7 +250,17 @@ async function renderBlock(block) {
         // 處理子項目
         if (value.children && value.children.length > 0) {
           const childrenHtml = await renderBlocksInternal(value.children);
-          itemContent += childrenHtml.join('');
+          // 檢查子項目是否包含列表項目
+          const hasListItems = value.children.some(child => 
+            child.type === 'bulleted_list_item' || child.type === 'numbered_list_item');
+          
+          if (hasListItems) {
+            // 如果子項目包含列表項目，直接添加
+            itemContent += childrenHtml.join('');
+          } else {
+            // 如果子項目不包含列表項目，添加額外的縮進
+            itemContent += `<div class="mt-2">${childrenHtml.join('')}</div>`;
+          }
         }
         
         return { 
@@ -226,7 +314,13 @@ async function renderBlock(block) {
         // 處理子項目
         if (value.children && value.children.length > 0) {
           const childrenHtml = await renderBlocksInternal(value.children);
-          content += `<div class="ml-6">${childrenHtml.join('')}</div>`;
+          content = `<div class="mb-4">
+            <div class="flex items-start">
+              <input type="checkbox" ${checked} class="mt-1 mr-2" disabled>
+              <div class="${value.checked ? 'line-through text-gray-500' : ''}">${renderRichText(value.rich_text)}</div>
+            </div>
+            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml.join('')}</div>
+          </div>`;
         }
         
         return content;
