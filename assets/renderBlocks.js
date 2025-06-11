@@ -1,5 +1,6 @@
 // renderBlocks.js - 輕量化版本
 // 放棄複雜的巢狀結構處理，專注於基本功能的穩定實現
+// 加強 callout 圖標支持
 
 window.renderBlocks = async function(blocks) {
   return await renderBlocksInternal(blocks);
@@ -42,6 +43,25 @@ async function fetchChildBlocks(blockId) {
   }
 }
 
+// 渲染 callout 圖標
+function renderCalloutIcon(icon) {
+  if (!icon) return '';
+  
+  if (icon.emoji) {
+    return `<div class="mr-2 text-lg">${icon.emoji}</div>`;
+  }
+  
+  if (icon.type === 'file' && icon.file?.url) {
+    return `<img src="${icon.file.url}" class="w-5 h-5 mr-2" alt="icon" />`;
+  }
+  
+  if (icon.type === 'external' && icon.external?.url) {
+    return `<img src="${icon.external.url}" class="w-5 h-5 mr-2" alt="icon" />`;
+  }
+  
+  return '';
+}
+
 async function renderBlock(block) {
   try {
     const { type } = block;
@@ -80,9 +100,43 @@ async function renderBlock(block) {
       }
 
       case 'callout': {
-        const emoji = value.icon?.emoji || '';
-        let content = `<div class="p-4 border-l-4 bg-blue-50 border-blue-400 rounded shadow-sm mb-4 flex items-start">` +
-          `<div class="mr-2 text-lg">${emoji}</div><div>${renderRichText(value.rich_text)}</div></div>`;
+        // 增強的 callout 圖標支持
+        const iconHtml = renderCalloutIcon(value.icon);
+        let bgColor = 'bg-blue-50';
+        let borderColor = 'border-blue-400';
+        
+        // 根據顏色調整背景和邊框
+        if (value.color && value.color !== 'default') {
+          const colorMap = {
+            'gray': { bg: 'bg-gray-50', border: 'border-gray-400' },
+            'brown': { bg: 'bg-amber-50', border: 'border-amber-400' },
+            'orange': { bg: 'bg-orange-50', border: 'border-orange-400' },
+            'yellow': { bg: 'bg-yellow-50', border: 'border-yellow-400' },
+            'green': { bg: 'bg-green-50', border: 'border-green-400' },
+            'blue': { bg: 'bg-blue-50', border: 'border-blue-400' },
+            'purple': { bg: 'bg-purple-50', border: 'border-purple-400' },
+            'pink': { bg: 'bg-pink-50', border: 'border-pink-400' },
+            'red': { bg: 'bg-red-50', border: 'border-red-400' },
+          };
+          
+          if (colorMap[value.color]) {
+            bgColor = colorMap[value.color].bg;
+            borderColor = colorMap[value.color].border;
+          }
+        }
+        
+        let content = `<div class="p-4 border-l-4 ${bgColor} ${borderColor} rounded shadow-sm mb-4 flex items-start">` +
+          `${iconHtml}<div>${renderRichText(value.rich_text)}</div></div>`;
+        
+        if (value.children && value.children.length > 0) {
+          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+          content = `<div class="mb-4">
+            <div class="p-4 border-l-4 ${bgColor} ${borderColor} rounded-t shadow-sm flex items-start">
+              ${iconHtml}<div>${renderRichText(value.rich_text)}</div>
+            </div>
+            <div class="pl-6 border-l ${borderColor} ml-4">${childrenHtml}</div>
+          </div>`;
+        }
         
         return content;
       }
