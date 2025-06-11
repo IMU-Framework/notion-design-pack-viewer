@@ -15,25 +15,24 @@
   <script>
     const pageId = new URLSearchParams(window.location.search).get("pageId");
 
-    const container = document.getElementById("notion-content");
-
     if (!pageId) {
-      container.innerHTML = '<p class="text-red-600">❌ 無法載入：缺少 pageId</p>';
+      document.getElementById("notion-content").innerHTML =
+        '<p class="text-red-600">❌ 無法載入：缺少 pageId</p>';
     } else {
-      fetch(`/api/page.js?pageId=${pageId}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("無法載入頁面內容");
-          return res.json();
-        })
-        .then(async ({ blocks }) => {
+      (async () => {
+        try {
+          const { blocks } = await fetchPageData(pageId);
           const html = await renderBlocks(blocks);
-          container.innerHTML = html;
-        })
-        .catch((err) => {
-          console.error("❌ 發生錯誤：", err);
-          container.innerHTML = '<p class="text-red-600">❌ 發生錯誤，無法顯示內容</p>';
-        });
+          document.getElementById("notion-content").innerHTML = html.join('');
+        } catch (err) {
+          document.getElementById("notion-content").innerHTML =
+            `<p class="text-red-600">❌ 錯誤：${err.message}</p>`;
+          console.error(err);
+        }
+      })();
     }
+  </script>
+
   </script>
 </body>
 </html>
