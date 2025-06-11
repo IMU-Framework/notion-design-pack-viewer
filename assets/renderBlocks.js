@@ -1,8 +1,77 @@
-// 修正版 renderBlocks.js：支援多層巢狀 toggle 與 list 結構
+// renderBlocks.js - 完整更新版本
+// 使用緩存策略結合分層加載策略
+
+// 緩存已獲取的區塊
+const blockCache = new Map();
 
 window.renderBlocks = async function(blocks) {
+  // 預加載一層子區塊
+  await preloadChildBlocks(blocks, 1);
+  
+  // 添加動態加載腳本
+  if (!window.childBlocksLoaderAdded) {
+    const script = document.createElement('script');
+    script.textContent = `
+      async function loadChildBlocks(blockId, containerId) {
+        const container = document.getElementById(containerId);
+        if (container.dataset.loaded === 'true') return;
+        
+        try {
+          const res = await fetch(\`/api/page?pageId=\${blockId}\`);
+          const data = await res.json();
+          const blocks = data.blocks || [];
+          
+          // 渲染子區塊
+          const html = await window.renderBlocks(blocks);
+          container.innerHTML = html.join('');
+          container.dataset.loaded = 'true';
+        } catch (error) {
+          console.error('Error loading child blocks:', error);
+          container.innerHTML = '<div class="text-red-500">Failed to load content</div>';
+        }
+      }
+    `;
+    document.head.appendChild(script);
+    window.childBlocksLoaderAdded = true;
+  }
+  
+  // 渲染區塊
   return await renderBlocksInternal(blocks);
 };
+
+// 獲取子區塊（帶緩存）
+async function fetchChildBlocks(blockId) {
+  if (blockCache.has(blockId)) {
+    return blockCache.get(blockId);
+  }
+  
+  try {
+    const res = await fetch(`/api/page?pageId=${blockId}`);
+    const childData = await res.json();
+    const blocks = childData.blocks || [];
+    
+    blockCache.set(blockId, blocks);
+    return blocks;
+  } catch (error) {
+    console.error(`Error fetching children for block ${blockId}:`, error);
+    return [];
+  }
+}
+
+// 預加載指定深度的子區塊
+async function preloadChildBlocks(blocks, depth = 1) {
+  if (depth <= 0 || !blocks || blocks.length === 0) return;
+  
+  for (const block of blocks) {
+    if (block.has_children) {
+      const childBlocks = await fetchChildBlocks(block.id);
+      block[block.type].children = childBlocks;
+      
+      // 遞迴預加載，但深度減少
+      await preloadChildBlocks(childBlocks, depth - 1);
+    }
+  }
+}
 
 function renderRichText(richTextArray) {
   if (!richTextArray || richTextArray.length === 0) return '';
@@ -29,38 +98,11 @@ function renderRichText(richTextArray) {
   }).join('');
 }
 
-// 修改：遞迴獲取所有層級的子區塊
-async function fetchChildBlocksRecursive(blockId) {
-  try {
-    const res = await fetch(`/api/page?pageId=${blockId}`);
-    const childData = await res.json();
-    const blocks = childData.blocks || [];
-    
-    // 遞迴獲取每個子區塊的子區塊
-    for (let i = 0; i < blocks.length; i++) {
-      const block = blocks[i];
-      if (block.has_children) {
-        const childBlocks = await fetchChildBlocksRecursive(block.id);
-        block[block.type].children = childBlocks;
-      }
-    }
-    
-    return blocks;
-  } catch (error) {
-    console.error(`Error fetching children for block ${blockId}:`, error);
-    return [];
-  }
-}
-
 async function renderBlock(block) {
   try {
     const { type } = block;
     const value = block[type];
-
-    // 預先載入子區塊（使用遞迴方法）
-    if (block.has_children && !value.children) {
-      value.children = await fetchChildBlocksRecursive(block.id);
-    }
+    const blockId = block.id;
 
     switch (type) {
       case 'heading_1':
@@ -68,29 +110,69 @@ async function renderBlock(block) {
       case 'heading_3': {
         const Tag = type === 'heading_1' ? 'h1' : type === 'heading_2' ? 'h2' : 'h3';
         const size = type === 'heading_1' ? 'text-3xl' : type === 'heading_2' ? 'text-2xl' : 'text-xl';
-        if (value.children?.length) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          return `<details class="group mb-4"><summary class="cursor-pointer list-none font-bold ${size} flex items-center">` +
+        
+        if (block.has_children) {
+          const toggleId = `heading-${blockId}`;
+          
+          // 如果已經有子區塊數據，直接渲染
+          if (value.children && value.children.length > 0) {
+            const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+            return `<details class="group mb-4"><summary class="cursor-pointer list-none font-bold ${size} flex items-center">` +
+              `<svg class="w-4 h-4 mr-2 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M6 6L14 10L6 14V6Z" /></svg>` +
+              `${renderRichText(value.rich_text)}</summary><div class="pl-6 mt-2 space-y-2 border-l-2 border-gray-200">${childrenHtml}</div></details>`;
+          }
+          
+          // 否則使用延遲加載
+          return `<details class="group mb-4" id="${toggleId}"><summary class="cursor-pointer list-none font-bold ${size} flex items-center" onclick="loadChildBlocks('${blockId}', '${toggleId}-content')">` +
             `<svg class="w-4 h-4 mr-2 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M6 6L14 10L6 14V6Z" /></svg>` +
-            `${renderRichText(value.rich_text)}</summary><div class="pl-6 mt-2 space-y-2 border-l-2 border-gray-200">${childrenHtml}</div></details>`;
+            `${renderRichText(value.rich_text)}</summary><div class="pl-6 mt-2 space-y-2 border-l-2 border-gray-200" id="${toggleId}-content" data-loaded="false">` +
+            `<div class="text-gray-400 text-sm">Loading...</div></div></details>`;
         }
+        
         return `<${Tag} class="${size} font-bold mb-2">${renderRichText(value.rich_text)}</${Tag}>`;
       }
 
       case 'paragraph': {
         let content = `<p class="mb-4 leading-relaxed">${renderRichText(value.rich_text)}</p>`;
-        if (value.children?.length) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content += `<div class="pl-6">${childrenHtml}</div>`;
+        
+        if (block.has_children) {
+          const paragraphId = `paragraph-${blockId}`;
+          
+          // 如果已經有子區塊數據，直接渲染
+          if (value.children && value.children.length > 0) {
+            const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+            content += `<div class="pl-6">${childrenHtml}</div>`;
+          } else {
+            // 否則使用延遲加載
+            content += `<div class="pl-6" id="${paragraphId}-content" data-loaded="false">
+              <button onclick="loadChildBlocks('${blockId}', '${paragraphId}-content')" class="text-blue-500 text-sm">
+                Load more content...
+              </button>
+            </div>`;
+          }
         }
+        
         return content;
       }
 
       case 'toggle': {
-        const childrenHtml = value.children?.length ? (await renderBlocksInternal(value.children)).join('') : '';
-        return `<details class="border rounded p-2 bg-gray-50 mb-4 group"><summary class="cursor-pointer flex items-center">` +
+        const toggleId = `toggle-${blockId}`;
+        
+        // 如果已經有子區塊數據，直接渲染
+        if (value.children && value.children.length > 0) {
+          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+          return `<details class="border rounded p-2 bg-gray-50 mb-4 group"><summary class="cursor-pointer flex items-center">` +
+            `<svg class="w-4 h-4 mr-2 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M6 6L14 10L6 14V6Z" /></svg>` +
+            `${renderRichText(value.rich_text)}</summary><div class="ml-4 mt-2 space-y-2 border-l-2 border-gray-200 pl-4">${childrenHtml}</div></details>`;
+        }
+        
+        // 否則使用延遲加載
+        return `<details class="border rounded p-2 bg-gray-50 mb-4 group" id="${toggleId}">` +
+          `<summary class="cursor-pointer flex items-center" onclick="loadChildBlocks('${blockId}', '${toggleId}-content')">` +
           `<svg class="w-4 h-4 mr-2 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M6 6L14 10L6 14V6Z" /></svg>` +
-          `${renderRichText(value.rich_text)}</summary><div class="ml-4 mt-2 space-y-2 border-l-2 border-gray-200 pl-4">${childrenHtml}</div></details>`;
+          `${renderRichText(value.rich_text)}</summary>` +
+          `<div class="ml-4 mt-2 space-y-2 border-l-2 border-gray-200 pl-4" id="${toggleId}-content" data-loaded="false">` +
+          `${block.has_children ? '<div class="text-gray-400 text-sm">Loading...</div>' : ''}</div></details>`;
       }
 
       case 'callout': {
@@ -98,29 +180,66 @@ async function renderBlock(block) {
         let content = `<div class="p-4 border-l-4 bg-blue-50 border-blue-400 rounded shadow-sm mb-4 flex items-start">` +
           `<div class="mr-2 text-lg">${emoji}</div><div>${renderRichText(value.rich_text)}</div></div>`;
         
-        if (value.children?.length) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content = `<div class="mb-4">
-            <div class="p-4 border-l-4 bg-blue-50 border-blue-400 rounded-t shadow-sm flex items-start">
-              <div class="mr-2 text-lg">${emoji}</div>
-              <div>${renderRichText(value.rich_text)}</div>
-            </div>
-            <div class="pl-6 border-l border-blue-400 ml-4">${childrenHtml}</div>
-          </div>`;
+        if (block.has_children) {
+          const calloutId = `callout-${blockId}`;
+          
+          // 如果已經有子區塊數據，直接渲染
+          if (value.children && value.children.length > 0) {
+            const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+            content = `<div class="mb-4">
+              <div class="p-4 border-l-4 bg-blue-50 border-blue-400 rounded-t shadow-sm flex items-start">
+                <div class="mr-2 text-lg">${emoji}</div>
+                <div>${renderRichText(value.rich_text)}</div>
+              </div>
+              <div class="pl-6 border-l border-blue-400 ml-4">${childrenHtml}</div>
+            </div>`;
+          } else {
+            // 否則使用延遲加載
+            content = `<div class="mb-4">
+              <div class="p-4 border-l-4 bg-blue-50 border-blue-400 rounded-t shadow-sm flex items-start">
+                <div class="mr-2 text-lg">${emoji}</div>
+                <div>${renderRichText(value.rich_text)}</div>
+              </div>
+              <div class="pl-6 border-l border-blue-400 ml-4" id="${calloutId}-content" data-loaded="false">
+                <button onclick="loadChildBlocks('${blockId}', '${calloutId}-content')" class="text-blue-500 text-sm">
+                  Load more content...
+                </button>
+              </div>
+            </div>`;
+          }
         }
+        
         return content;
       }
 
-      case 'quote':
+      case 'quote': {
         let quoteContent = `<blockquote class="border-l-4 pl-4 italic text-gray-600 mb-4">${renderRichText(value.rich_text)}</blockquote>`;
-        if (value.children?.length) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          quoteContent = `<div class="mb-4">
-            <blockquote class="border-l-4 pl-4 italic text-gray-600">${renderRichText(value.rich_text)}</blockquote>
-            <div class="pl-8 border-l border-gray-300 ml-4">${childrenHtml}</div>
-          </div>`;
+        
+        if (block.has_children) {
+          const quoteId = `quote-${blockId}`;
+          
+          // 如果已經有子區塊數據，直接渲染
+          if (value.children && value.children.length > 0) {
+            const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+            quoteContent = `<div class="mb-4">
+              <blockquote class="border-l-4 pl-4 italic text-gray-600">${renderRichText(value.rich_text)}</blockquote>
+              <div class="pl-8 border-l border-gray-300 ml-4">${childrenHtml}</div>
+            </div>`;
+          } else {
+            // 否則使用延遲加載
+            quoteContent = `<div class="mb-4">
+              <blockquote class="border-l-4 pl-4 italic text-gray-600">${renderRichText(value.rich_text)}</blockquote>
+              <div class="pl-8 border-l border-gray-300 ml-4" id="${quoteId}-content" data-loaded="false">
+                <button onclick="loadChildBlocks('${blockId}', '${quoteId}-content')" class="text-blue-500 text-sm">
+                  Load more content...
+                </button>
+              </div>
+            </div>`;
+          }
         }
+        
         return quoteContent;
+      }
 
       case 'code': {
         const lang = value.language || 'plain';
@@ -150,10 +269,29 @@ async function renderBlock(block) {
 
       case 'bulleted_list_item':
       case 'numbered_list_item': {
-        const nestedContent = value.children?.length ? await processNestedList(value.children) : '';
+        let itemContent = renderRichText(value.rich_text);
+        
+        // 處理子項目
+        if (block.has_children) {
+          const listItemId = `list-item-${blockId}`;
+          
+          // 如果已經有子區塊數據，直接渲染
+          if (value.children && value.children.length > 0) {
+            const nestedContent = await processNestedList(value.children);
+            itemContent += nestedContent;
+          } else {
+            // 否則使用延遲加載
+            itemContent += `<div id="${listItemId}-content" data-loaded="false">
+              <button onclick="loadChildBlocks('${blockId}', '${listItemId}-content')" class="text-blue-500 text-sm">
+                Load nested items...
+              </button>
+            </div>`;
+          }
+        }
+        
         return { 
           type, 
-          html: `<li>${renderRichText(value.rich_text)}${nestedContent}</li>` 
+          html: `<li>${itemContent}</li>` 
         };
       }
 
@@ -184,6 +322,16 @@ async function renderBlock(block) {
             tableHtml += '</tr>';
           }
           tableHtml += '</tbody>';
+        } else if (block.has_children) {
+          // 使用延遲加載
+          const tableId = `table-${blockId}`;
+          tableHtml += `<tbody id="${tableId}-content" data-loaded="false">
+            <tr><td colspan="100%" class="text-center p-4">
+              <button onclick="loadChildBlocks('${blockId}', '${tableId}-content')" class="text-blue-500">
+                Load table data...
+              </button>
+            </td></tr>
+          </tbody>`;
         }
         
         tableHtml += '</table></div>';
@@ -199,9 +347,21 @@ async function renderBlock(block) {
           </div>
         `;
         
-        if (value.children?.length) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          todoContent += `<div class="ml-6">${childrenHtml}</div>`;
+        if (block.has_children) {
+          const todoId = `todo-${blockId}`;
+          
+          // 如果已經有子區塊數據，直接渲染
+          if (value.children && value.children.length > 0) {
+            const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+            todoContent += `<div class="ml-6">${childrenHtml}</div>`;
+          } else {
+            // 否則使用延遲加載
+            todoContent += `<div class="ml-6" id="${todoId}-content" data-loaded="false">
+              <button onclick="loadChildBlocks('${blockId}', '${todoId}-content')" class="text-blue-500 text-sm">
+                Load subtasks...
+              </button>
+            </div>`;
+          }
         }
         
         return todoContent;
