@@ -15,6 +15,7 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const pageId = urlParams.get('pageId');
+    
     if (pageId) {
       document.getElementById('notion-db-iframe').src = `https://imu-framework.notion.site/${pageId}`;
     } else {
