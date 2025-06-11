@@ -40,7 +40,8 @@ export default async function handler(req, res) {
           Active: active,
           Group: group,
           Icon: icon,
-          Order: props["Order"]?.number ?? null
+          Order: props["Order"]?.number ?? null,
+          CreatedTime: page.created_time,
         };
       })
     );
