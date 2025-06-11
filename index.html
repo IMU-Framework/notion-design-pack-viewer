@@ -23,15 +23,11 @@
 
   <div class="flex-1 flex flex-col">
     <header id="breadcrumb-header" class="bg-white px-6 py-3 shadow">
-      <nav class="flex text-sm text-gray-500 space-x-2">
-        <a href="#" class="hover:underline">首頁</a>
-        <span>/</span>
-        <span id="breadcrumb-current" class="text-gray-700 font-semibold">歡迎</span>
-      </nav>
+      <nav class="flex text-sm text-gray-500 space-x-2" id="breadcrumb-nav"></nav>
     </header>
     <main class="flex-1 overflow-auto">
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full">
-        <iframe src="https://imu-framework.notion.site/20fbce068710803db8efdbc6b7c21e50" class="w-full h-full border-none"></iframe>
+        <!-- 預設不再是歡迎頁 -->
       </div>
     </main>
   </div>
@@ -46,18 +42,28 @@
     }
 
     function updateBreadcrumb(path) {
-      const breadcrumb = document.getElementById("breadcrumb-current");
-      breadcrumb.innerHTML = path
-        .map((p, idx) =>
-          idx === path.length - 1
-            ? `<span class="text-gray-700 font-semibold">${p}</span>`
-            : `<span class="text-gray-500">${p}</span>`
-        )
-        .join('<span class="text-gray-400"> / </span>');
+      const breadcrumb = document.getElementById("breadcrumb-nav");
+      breadcrumb.innerHTML = ""; // 清空原本內容
+
+      path.forEach((p, idx) => {
+        if (idx > 0) {
+          const separator = document.createElement("span");
+          separator.textContent = "/";
+          separator.className = "text-gray-400";
+          breadcrumb.appendChild(separator);
+        }
+
+        const span = document.createElement("span");
+        span.textContent = p;
+        span.className = idx === path.length - 1
+          ? "text-gray-700 font-semibold"
+          : "text-gray-500";
+        breadcrumb.appendChild(span);
+      });
     }
 
     function clearOutline() {
-      document.querySelectorAll(".outline-nav").forEach((o) => o.remove());
+      document.querySelectorAll(".outline-nav").forEach(o => o.remove());
     }
 
     function renderIcon(icon, title) {
@@ -69,6 +75,7 @@
 
     async function initSidebar() {
       const sidebar = document.getElementById("sidebar-nav");
+      const viewer = document.getElementById("notion-viewer");
       sidebar.innerHTML = "";
       try {
         const { pages } = await fetchSidebarData();
@@ -112,6 +119,7 @@
           return new Date(a.CreatedTime) - new Date(b.CreatedTime);
         });
 
+        // ✅ 插入 Home 頁並預設載入
         if (homePage) {
           const homeEl = document.createElement("a");
           homeEl.innerHTML = renderIcon(homePage.Icon, homePage.Title);
@@ -119,13 +127,16 @@
           homeEl.onclick = () => {
             document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active"));
             homeEl.classList.add("active");
-            updateBreadcrumb(["首頁"]);
+            updateBreadcrumb(["首頁", homePage.Title]);
             const url = homePage.View_Mode === "db"
               ? `db-view.html?dbId=${homePage.Page_ID}`
               : `page-view.html?pageId=${homePage.Page_ID}`;
-            window.location.href = url;
+            viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
           };
           sidebar.appendChild(homeEl);
+
+          // ⬇️ 預設載入 Home 頁
+          homeEl.click();
         }
 
         parentMeta.forEach(({ title: groupTitle }) => {
@@ -157,7 +168,7 @@
               const url = item.View_Mode?.toLowerCase() === "db"
                 ? `db-view.html?dbId=${item.Page_ID}`
                 : `page-view.html?pageId=${item.Page_ID}`;
-              window.location.href = url;
+              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
             };
             li.appendChild(a);
             ul.appendChild(li);
