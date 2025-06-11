@@ -1,5 +1,4 @@
-// renderBlocks.js - 全面優化版本
-// 支援所有類型的巢狀結構，包括 Headings Toggle 和 Callout 內容包含
+// renderBlocks.js - 支援空白區塊的全面優化版本
 
 window.renderBlocks = async function(blocks) {
   return await renderBlocksInternal(blocks);
@@ -53,6 +52,12 @@ async function renderBlock(block) {
   try {
     const { type } = block;
     const value = block[type];
+
+    // 處理空白區塊 - 檢查段落是否為空
+    if (type === 'paragraph' && (!value.rich_text || value.rich_text.length === 0)) {
+      // 返回一個帶有適當間距的空白區塊
+      return `<div class="h-6"></div>`;
+    }
 
     switch (type) {
       case 'heading_1': {
@@ -369,6 +374,10 @@ async function renderBlock(block) {
           <iframe src="${value.url}" class="w-full h-96" frameborder="0"></iframe>
         </div>`;
       }
+
+      // 處理空白區塊 - 這是為了兼容可能的其他空白區塊類型
+      case 'unsupported':
+        return `<div class="h-6"></div>`;
 
       default:
         return `<div class="text-sm text-gray-400 mb-2">[Unsupported block: ${type}]</div>`;
