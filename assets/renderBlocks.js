@@ -1,10 +1,7 @@
-const pageId = new URLSearchParams(window.location.search).get("pageId");
-
-async function fetchPageData(pageId) {
-  const res = await fetch(`/api/page?pageId=${pageId}`);
-  if (!res.ok) throw new Error("載入失敗");
-  return res.json();
-}
+// 將主要功能包裝成可導出的函數
+window.renderBlocks = async function(blocks) {
+  return await renderBlocksInternal(blocks);
+};
 
 function renderRichText(richTextArray) {
   return richTextArray.map(rt => {
@@ -32,7 +29,7 @@ async function renderBlock(block) {
       return `<p>${renderRichText(value.rich_text)}</p>`;
 
     case 'toggle':
-      const childrenHtml = value.children ? (await renderBlocks(value.children)).join('') : '';
+      const childrenHtml = value.children ? (await renderBlocksInternal(value.children)).join('') : '';
       return `
         <details class="border rounded p-2 bg-gray-50">
           <summary>${renderRichText(value.rich_text)}</summary>
@@ -70,8 +67,8 @@ async function renderBlock(block) {
   }
 }
 
-// 🔁 處理 block list，包裝成段落或 ul/ol
-async function renderBlocks(blocks) {
+// 處理 block list，包裝成段落或 ul/ol
+async function renderBlocksInternal(blocks) {
   const htmlChunks = [];
   let listBuffer = [];
   let currentListType = null;
