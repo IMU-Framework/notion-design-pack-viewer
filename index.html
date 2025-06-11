@@ -65,8 +65,8 @@
       try {
         const { pages } = await fetchSidebarData();
 
-        const parents = pages.filter(p => p.Active && !p['Parent Item']);
-        const children = pages.filter(p => p.Active && p['Parent Item']);
+        const parents = pages.filter(p => p.Active && !p['Parent item']);
+        const children = pages.filter(p => p.Active && p['Parent item']);
 
         parents.forEach(parent => {
           const details = document.createElement('details');
@@ -77,7 +77,7 @@
 
           const ul = document.createElement('ul');
           ul.className = 'ml-8 mt-2 space-y-1 text-base';
-          const relatedChildren = children.filter(c => c['Parent Item'] === parent.Title);
+          const relatedChildren = children.filter(c => c['Parent item'] === parent.Title);
 
           relatedChildren.forEach(item => {
             const li = document.createElement('li');
