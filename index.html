@@ -37,11 +37,8 @@
   </div>
 
   <script>
-    const NOTION_TOKEN = "__REPLACE_WITH_ENV_TOKEN__";
-    const DATABASE_ID = "__REPLACE_WITH_ENV_DBID__";
-
     async function fetchNotionData() {
-      const res = await fetch(`/api/notion.js?pageId=${DATABASE_ID}`);
+      const res = await fetch(`/api/notion.js`);
       if (!res.ok) throw new Error("載入失敗");
       return res.json();
     }
