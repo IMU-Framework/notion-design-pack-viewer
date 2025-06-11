@@ -2,8 +2,93 @@ import { Client } from "@notionhq/client";
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
+// 獲取區塊及其子區塊
+async function getBlockWithChildren(blockId, depth = 1) {
+  try {
+    // 獲取區塊
+    const block = await notion.blocks.retrieve({ block_id: blockId });
+    
+    // 如果區塊有子項且需要獲取子項
+    if (block.has_children && depth > 0) {
+      const children = await getBlockChildren(blockId);
+      
+      // 根據區塊類型，將子項放在適當的位置
+      if (block.type === 'table') {
+        block[block.type].children = children;
+      } else if (block.type === 'column_list') {
+        block[block.type].children = children;
+      } else if (block.type === 'toggle') {
+        block[block.type].children = children;
+      } else if (block.type === 'callout') {
+        block[block.type].children = children;
+      } else {
+        // 對於其他類型，統一放在 children 屬性中
+        block.children = children;
+      }
+    }
+    
+    return block;
+  } catch (error) {
+    console.error(`Error retrieving block ${blockId}:`, error);
+    throw error;
+  }
+}
+
+// 獲取區塊的所有子項
+async function getBlockChildren(blockId, depth = 1) {
+  const children = [];
+  let cursor;
+  
+  try {
+    // 分頁獲取所有子區塊
+    do {
+      const response = await notion.blocks.children.list({
+        block_id: blockId,
+        start_cursor: cursor,
+        page_size: 50,
+      });
+      
+      const blocks = response.results;
+      
+      // 如果需要繼續獲取子區塊的子區塊
+      if (depth > 0) {
+        for (const block of blocks) {
+          if (block.has_children) {
+            // 遞迴獲取子區塊
+            const childBlocks = await getBlockChildren(block.id, depth - 1);
+            
+            // 根據區塊類型，將子項放在適當的位置
+            if (block.type === 'table') {
+              block[block.type].children = childBlocks;
+            } else if (block.type === 'column_list') {
+              block[block.type].children = childBlocks;
+            } else if (block.type === 'toggle') {
+              block[block.type].children = childBlocks;
+            } else if (block.type === 'callout') {
+              block[block.type].children = childBlocks;
+            } else {
+              // 對於其他類型，統一放在 children 屬性中
+              block.children = childBlocks;
+            }
+          }
+        }
+      }
+      
+      children.push(...blocks);
+      cursor = response.has_more ? response.next_cursor : null;
+    } while (cursor);
+    
+    return children;
+  } catch (error) {
+    console.error(`Error retrieving children for block ${blockId}:`, error);
+    throw error;
+  }
+}
+
 export default async function handler(req, res) {
   const { pageId } = req.query;
+  const { depth = 1 } = req.query; // 默認獲取 1 層子區塊
+  const maxDepth = Math.min(parseInt(depth) || 1, 2); // 限制最大深度為 2，避免請求過多
 
   if (!pageId || pageId === "null" || pageId === "undefined") {
     return res.status(400).json({ error: "無效的 Page ID", details: `提供的 pageId: ${pageId}` });
@@ -20,20 +105,8 @@ export default async function handler(req, res) {
       throw error; // 其他錯誤繼續拋出
     }
 
-    const blocks = [];
-    let cursor;
-
-    // 分頁抓取所有 block
-    do {
-      const response = await notion.blocks.children.list({
-        block_id: pageId,
-        start_cursor: cursor,
-        page_size: 50,
-      });
-
-      blocks.push(...response.results);
-      cursor = response.has_more ? response.next_cursor : null;
-    } while (cursor);
+    // 獲取頁面的所有區塊，包括子區塊
+    const blocks = await getBlockChildren(pageId, maxDepth);
 
     res.status(200).json({ blocks });
   } catch (error) {
