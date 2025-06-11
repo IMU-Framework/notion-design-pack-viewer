@@ -10,25 +10,40 @@ export default async function handler(req, res) {
       sorts: [{ property: "Order", direction: "ascending" }],
     });
 
-    const pages = response.results.map((page) => {
-      const props = page.properties;
+    const pages = await Promise.all(
+      response.results.map(async (page) => {
+        const props = page.properties;
 
-      const title = props["Title"]?.title?.[0]?.plain_text || "Untitled";
-      const viewMode = props["View_Mode"]?.select?.name || null;
-      const pageId = props["Page_ID"]?.formula?.string || null;
-      const active = props["Active"]?.checkbox || false;
-      const icon = page.icon?.emoji || null;
-      const group = props["Group"]?.rich_text?.[0]?.plain_text || null;
+        const title = props["Title"]?.title?.[0]?.plain_text || "Untitled";
+        const viewMode = props["View_Mode"]?.select?.name || null;
+        const pageId = props["Page_ID"]?.formula?.string || null;
+        const active = props["Active"]?.checkbox || false;
+        const icon = page.icon?.emoji || null;
 
-      return {
-        Title: title,
-        View_Mode: viewMode,
-        Page_ID: pageId,
-        Active: active,
-        Group: group,
-        Icon: icon,
-      };
-    });
+        // 處理 Group（Relation -> Title）
+        let group = null;
+        const groupRel = props["Group"]?.relation;
+        if (groupRel && groupRel.length > 0) {
+          const parentId = groupRel[0].id;
+          try {
+            const parentPage = await notion.pages.retrieve({ page_id: parentId });
+            group = parentPage.properties?.Title?.title?.[0]?.plain_text || null;
+          } catch (err) {
+            console.warn("無法擷取 Group 關聯頁面 Title", parentId);
+          }
+        }
+
+        return {
+          Title: title,
+          View_Mode: viewMode,
+          Page_ID: pageId,
+          Active: active,
+          Group: group,
+          Icon: icon,
+          Order: props["Order"]?.number ?? null
+        };
+      })
+    );
 
     res.status(200).json({ pages });
   } catch (error) {
@@ -36,3 +51,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
