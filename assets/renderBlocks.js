@@ -1,4 +1,4 @@
-// renderBlocks.js - 優化標題間距和巢狀列表排版
+// renderBlocks.js
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
