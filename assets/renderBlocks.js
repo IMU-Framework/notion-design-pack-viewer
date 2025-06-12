@@ -1,5 +1,11 @@
 // renderBlocks.js - 支援空白區塊的全面優化版本
 
+function renderErrorBlock(type, errorMessage = '') {
+  return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
+    [Error rendering block: ${type}] ${errorMessage}
+  </div>`;
+}
+
 window.renderBlocks = async function(blocks) {
   return await renderBlocksInternal(blocks);
 };
@@ -383,11 +389,9 @@ async function renderBlock(block) {
         return `<div class="text-sm text-gray-400 mb-2">[Unsupported block: ${type}]</div>`;
     }
   } catch (error) {
-    console.error(`Error rendering block:`, error);
-    return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
-      Error rendering block: ${block?.type || 'unknown'}
-    </div>`;
-  }
+  console.error(`Error rendering block (${block?.type}):`, error);
+  return renderErrorBlock(block?.type, error.message);
+}
 }
 
 async function renderBlocksInternal(blocks) {
