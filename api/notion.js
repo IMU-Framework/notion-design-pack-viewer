@@ -14,7 +14,8 @@ export default async function handler(req, res) {
       response.results.map(async (page) => {
         const props = page.properties;
         const title = props["Title"]?.title?.[0]?.plain_text || "Untitled";
-        const viewMode = props["View_Mode"]?.select?.name || null;
+        const rawViewMode = props["View_Mode"]?.select?.name?.toLowerCase() || null;
+        const viewMode = ['embed', 'api'].includes(rawViewMode) ? rawViewMode : 'api';
         const pageId = props["Page_ID"]?.formula?.string || null;
         const active = props["Active"]?.checkbox || false;
 
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
 
         return {
           Title: title,
-          View_Mode: viewMode,
+          View_Mode: viewMode,  // embed 或 api
           Page_ID: pageId,
           Active: active,
           Group: group,
