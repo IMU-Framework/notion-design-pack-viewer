@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notion Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-gray-800">
+  <main class="max-w-5xl mx-auto px-6 py-8">
+    <div id="viewer-container" class="space-y-4">
+      <div class="animate-pulse">
+        <div class="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+        <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const pageId = params.get('pageId');
+    const mode = params.get('mode'); // 'api' or 'embed'
+    const container = document.getElementById('viewer-container');
+
+    if (!pageId || pageId === 'null' || pageId === 'undefined') {
+      container.innerHTML = `<div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
+        <h3 class="font-bold text-lg mb-2">⚠️ 無效的 Page ID</h3>
+        <p>請確認 URL 參數正確。</p>
+        <p class="mt-2 text-sm">當前 Page ID: ${pageId ? \`"\${pageId}"\` : '未提供'}</p>
+        <button onclick="window.history.back()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          返回上一頁
+        </button>
+      </div>`;
+    } else if (mode === 'embed') {
+      container.innerHTML = `<iframe src="https://imu-framework.notion.site/${pageId}" class="w-full h-screen border rounded-md"></iframe>`;
+    } else {
+      const script = document.createElement('script');
+      script.src = '/assets/renderBlocks.js';
+      script.onload = async () => {
+        try {
+          const res = await fetch(`/api/page?pageId=${pageId}`);
+          const data = await res.json();
+          if (!data.blocks || !Array.isArray(data.blocks)) throw new Error('返回格式錯誤');
+          const htmlBlocks = await window.renderBlocks(data.blocks);
+          container.innerHTML = htmlBlocks.join('') || '<p class="text-gray-500">尚無內容</p>';
+        } catch (e) {
+          container.innerHTML = `<div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
+            <h3 class="font-bold text-lg mb-2">⚠️ 載入失敗</h3>
+            <p>${e.message}</p>
+          </div>`;
+        }
+      };
+      script.onerror = () => {
+        container.innerHTML = `<div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
+          <h3 class="font-bold text-lg mb-2">⚠️ 無法載入 renderBlocks.js</h3>
+        </div>`;
+      }
+      document.body.appendChild(script);
+    }
+  </script>
+</body>
+</html>
