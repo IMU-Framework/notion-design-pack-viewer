@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         const props = page.properties;
         const title = props["Title"]?.title?.[0]?.plain_text || "Untitled";
         const rawViewMode = props["View_Mode"]?.select?.name?.toLowerCase() || null;
-        const viewMode = ['embed', 'api'].includes(rawViewMode) ? rawViewMode : 'api';
+        const viewMode = ['db', 'page'].includes(rawViewMode) ? rawViewMode : 'page';
         const pageId = props["Page_ID"]?.formula?.string || null;
         const active = props["Active"]?.checkbox || false;
 
