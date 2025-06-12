@@ -55,9 +55,9 @@ async function getBlockChildren(blockId, depth = 1) {
             const childBlocks = await getBlockChildren(block.id, depth - 1);
             
             // 將子項放在適當的位置
-            if (['table', 'column_list', 'toggle', 'callout', 'quote', 'paragraph', 
+            if (['table', 'column_list', 'toggle', 'callout', 'quote', 'paragraph',
                  'heading_1', 'heading_2', 'heading_3', 'bulleted_list_item', 
-                 'numbered_list_item', 'to_do'].includes(block.type)) {
+                 'numbered_list_item', 'to_do', 'table_of_contents', 'equation'].includes(block.type)) {
               // 對於這些特定類型，將子項放在類型對應的屬性中
               block[block.type].children = childBlocks;
             } else {
