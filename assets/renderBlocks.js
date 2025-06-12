@@ -1,4 +1,4 @@
-// renderBlocks.js
+// renderBlocks.js - 優化巢狀列表的樣式標記
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
@@ -54,6 +54,10 @@ window.renderBlocks = async function(blocks) {
   const result = await renderBlocksInternal(blocks);
   return result;
 };
+
+// 追踪列表的嵌套層級
+let bulletedListLevel = 0;
+let numberedListLevel = 0;
 
 async function renderBlock(block) {
   try {
@@ -235,6 +239,7 @@ async function renderBlock(block) {
       }
 
       case 'bulleted_list_item': {
+        bulletedListLevel++;
         let itemContent = renderRichText(value.rich_text);
         
         // 處理子項目
@@ -253,13 +258,18 @@ async function renderBlock(block) {
           }
         }
         
-        return { 
+        const result = { 
           type, 
-          html: `<li class="mb-2">${itemContent}</li>` 
+          html: `<li class="mb-2">${itemContent}</li>`,
+          level: bulletedListLevel
         };
+        
+        bulletedListLevel--;
+        return result;
       }
 
       case 'numbered_list_item': {
+        numberedListLevel++;
         let itemContent = renderRichText(value.rich_text);
         
         // 處理子項目
@@ -278,10 +288,14 @@ async function renderBlock(block) {
           }
         }
         
-        return { 
+        const result = { 
           type, 
-          html: `<li class="mb-2">${itemContent}</li>` 
+          html: `<li class="mb-2">${itemContent}</li>`,
+          level: numberedListLevel
         };
+        
+        numberedListLevel--;
+        return result;
       }
 
       case 'divider':
@@ -421,6 +435,7 @@ async function renderBlocksInternal(blocks) {
   const htmlChunks = [];
   let listBuffer = [];
   let currentListType = null;
+  let currentListLevel = 0;
 
   for (const block of blocks) {
     try {
@@ -428,22 +443,25 @@ async function renderBlocksInternal(blocks) {
 
       // 如果是列表項目，收集起來
       if (typeof rendered === 'object' && (rendered.type === 'bulleted_list_item' || rendered.type === 'numbered_list_item')) {
-        if (!currentListType) currentListType = rendered.type;
-        
-        // 如果列表類型變了，先處理之前的列表
-        if (rendered.type !== currentListType) {
-          htmlChunks.push(wrapList(currentListType, listBuffer));
-          listBuffer = [];
+        // 檢查是否需要開始一個新列表
+        if (!currentListType || currentListType !== rendered.type || currentListLevel !== rendered.level) {
+          // 如果有未處理的列表，先處理它
+          if (listBuffer.length) {
+            htmlChunks.push(wrapList(currentListType, listBuffer, currentListLevel));
+            listBuffer = [];
+          }
           currentListType = rendered.type;
+          currentListLevel = rendered.level;
         }
         
         listBuffer.push(rendered.html);
       } else {
         // 如果有未處理的列表，先處理它
         if (listBuffer.length) {
-          htmlChunks.push(wrapList(currentListType, listBuffer));
+          htmlChunks.push(wrapList(currentListType, listBuffer, currentListLevel));
           listBuffer = [];
           currentListType = null;
+          currentListLevel = 0;
         }
         
         htmlChunks.push(rendered);
@@ -458,15 +476,45 @@ async function renderBlocksInternal(blocks) {
 
   // 處理最後剩餘的列表項
   if (listBuffer.length) {
-    htmlChunks.push(wrapList(currentListType, listBuffer));
+    htmlChunks.push(wrapList(currentListType, listBuffer, currentListLevel));
   }
 
   return htmlChunks;
 }
 
-function wrapList(type, items) {
-  const tag = type === 'numbered_list_item' ? 'ol' : 'ul';
-  const listClass = tag === 'ol' ? 'list-decimal' : 'list-disc';
-  // 修改列表間距，使用 space-y-2 而不是 space-y-1，並移除 mb-4 (會在外層添加)
-  return `<${tag} class="pl-6 space-y-2 ${listClass}">${items.join('')}</${tag}>`;
+function wrapList(type, items, level) {
+  let tag = 'ul';
+  let listClass = '';
+  
+  // 根據列表類型和層級設置標記樣式
+  if (type === 'numbered_list_item') {
+    tag = 'ol';
+    // 根據層級選擇不同的列表樣式
+    switch ((level - 1) % 3) {
+      case 0: // 第一層 (1, 2, 3...)
+        listClass = 'list-decimal';
+        break;
+      case 1: // 第二層 (a, b, c...)
+        listClass = 'list-[lower-alpha]';
+        break;
+      case 2: // 第三層 (i, ii, iii...)
+        listClass = 'list-[lower-roman]';
+        break;
+    }
+  } else {
+    // 無序列表根據層級選擇不同的項目符號
+    switch ((level - 1) % 3) {
+      case 0: // 第一層 (•)
+        listClass = 'list-disc';
+        break;
+      case 1: // 第二層 (◦)
+        listClass = 'list-[circle]';
+        break;
+      case 2: // 第三層 (‣)
+        listClass = 'list-[square]';
+        break;
+    }
+  }
+  
+  return `<${tag} class="pl-6 space-y-2 mb-4 ${listClass}">${items.join('')}</${tag}>`;
 }
