@@ -8,8 +8,6 @@
   <style>
     .active-nav {
       transition: background-color 0.2s, color 0.2s;
-    }
-    .active-nav.active {
       background-color: #e0f2fe;
       color: #1e40af;
     }
@@ -41,8 +39,7 @@
 
     function updateBreadcrumb(path) {
       const breadcrumb = document.getElementById("breadcrumb-nav");
-      breadcrumb.innerHTML = ""; // 清空原本內容
-
+      breadcrumb.innerHTML = "";
       path.forEach((p, idx) => {
         if (idx > 0) {
           const separator = document.createElement("span");
@@ -50,12 +47,9 @@
           separator.className = "text-gray-400";
           breadcrumb.appendChild(separator);
         }
-
         const span = document.createElement("span");
         span.textContent = p;
-        span.className = idx === path.length - 1
-          ? "text-gray-700 font-semibold"
-          : "text-gray-500";
+        span.className = idx === path.length - 1 ? "text-gray-700 font-semibold" : "text-gray-500";
         breadcrumb.appendChild(span);
       });
     }
@@ -98,6 +92,7 @@
               title: page.Title,
               Order: page.Order ?? null,
               CreatedTime: page.CreatedTime,
+              Icon: page.Icon || null,
             });
           }
         });
@@ -118,17 +113,39 @@
           return new Date(a.CreatedTime) - new Date(b.CreatedTime);
         });
 
-        // ✅ Render sidebar groups (no Home)
-        parentMeta.forEach(({ title: groupTitle }) => {
+        // ✅ Render sidebar groups (with icon & clickable summary)
+        parentMeta.forEach(({ title: groupTitle, Icon: groupIcon }) => {
           const details = document.createElement("details");
           details.classList.add("group");
 
           const summary = document.createElement("summary");
           summary.className = "flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg";
-          summary.innerHTML = `<span class="flex items-center">${groupTitle}</span>
+
+          const iconHTML = groupIcon
+            ? (groupIcon.startsWith("http")
+                ? `<img src="${groupIcon}" class="w-4 h-4 mr-2 inline" />`
+                : `<span class="mr-2">${groupIcon}</span>`)
+            : "";
+
+          summary.innerHTML = `
+            <span class="flex items-center">${iconHTML}${groupTitle}</span>
             <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>`;
+
+          summary.onclick = () => {
+            clearOutline();
+            document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
+            summary.classList.add("active-nav");
+            updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle]);
+            const page = pages.find(p => p.Title === groupTitle);
+            if (page) {
+              const url = page.View_Mode?.toLowerCase() === "db"
+                ? `db_view.html?pageId=${page.Page_ID}`
+                : `page_view.html?pageId=${page.Page_ID}`;
+              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+            }
+          };
 
           const ul = document.createElement("ul");
           ul.className = "ml-8 mt-2 space-y-1 text-base";
@@ -142,8 +159,8 @@
             a.onclick = (e) => {
               e.stopPropagation();
               clearOutline();
-              document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active"));
-              a.classList.add("active");
+              document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
+              a.classList.add("active-nav");
               updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
               const url = item.View_Mode?.toLowerCase() === "db"
                 ? `db_view.html?pageId=${item.Page_ID}`
@@ -159,19 +176,17 @@
           sidebar.appendChild(details);
         });
 
-        // ✅ 點擊 "IMU 導覽" 會回到 Home
+        // ✅ 點擊 logo 回首頁
         if (homePage) {
           document.getElementById("nav-header").onclick = () => {
-            document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active"));
+            document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
             updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title]);
             const url = homePage.View_Mode === "db"
-              ? `db_view.html?dbId=${homePage.Page_ID}`
+              ? `db_view.html?pageId=${homePage.Page_ID}`
               : `page_view.html?pageId=${homePage.Page_ID}`;
             viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
           };
-
-          // ⬇️ 預設載入 Home
-          document.getElementById("nav-header").click();
+          document.getElementById("nav-header").click(); // 預設載入首頁
         }
       } catch (err) {
         document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
