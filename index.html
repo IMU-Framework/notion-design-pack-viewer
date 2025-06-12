@@ -146,7 +146,7 @@
               a.classList.add("active");
               updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
               const url = item.View_Mode?.toLowerCase() === "db"
-                ? `db_view.html?dbId=${item.Page_ID}`
+                ? `db_view.html?pageId=${item.Page_ID}`
                 : `page_view.html?pageId=${item.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
             };
