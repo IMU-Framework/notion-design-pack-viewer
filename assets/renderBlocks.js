@@ -1,4 +1,4 @@
-// renderBlocks.js - 整合版本：支援所有區塊類型並強化互動功能
+// renderBlocks.js - 整合版本：修正 equation 和 column 渲染
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
@@ -6,8 +6,49 @@ function renderErrorBlock(type, errorMessage = '') {
   </div>`;
 }
 
+// 初始化 MathJax
+function initMathJax() {
+  if (window.MathJax) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    // 創建 MathJax 配置
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      },
+      startup: {
+        pageReady: () => {
+          resolve();
+        }
+      }
+    };
+
+    // 載入 MathJax 腳本
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
+    script.async = true;
+    document.head.appendChild(script);
+  });
+}
+
 window.renderBlocks = async function(blocks) {
-  return await renderBlocksInternal(blocks);
+  // 初始化 MathJax
+  await initMathJax();
+  const result = await renderBlocksInternal(blocks);
+  
+  // 如果頁面包含數學公式，處理渲染
+  if (document.querySelector('.math-inline')) {
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      await window.MathJax.typesetPromise();
+    }
+  }
+  
+  return result;
 };
 
 function renderRichText(richTextArray) {
@@ -56,7 +97,19 @@ function renderCalloutIcon(icon) {
 
 // 支援 TeX 風格方程式與 MathJax
 function renderEquation(expression) {
-  return `<div class="mb-4"><span class="math-inline">\(${expression}\)</span></div>`;
+  // 使用 MathJax 格式
+  return `<div class="mb-4 py-2 px-4 bg-gray-50 overflow-x-auto">
+    <div class="math-inline">$${expression}$</div>
+  </div>`;
+}
+
+// 生成目錄項目
+function generateTocItem(headingText, level) {
+  const indentClass = level === 1 ? '' : `ml-${(level-1)*4}`;
+  const sizeClass = level === 1 ? 'text-base font-medium' : 'text-sm';
+  return `<div class="${indentClass} ${sizeClass} py-1 hover:text-blue-600">
+    ${headingText}
+  </div>`;
 }
 
 async function renderBlock(block) {
@@ -72,13 +125,13 @@ async function renderBlock(block) {
 
     switch (type) {
       case 'heading_1': {
-        let content = `<h1 class="text-3xl font-bold mb-2">${renderRichText(value.rich_text)}</h1>`;
+        let content = `<h1 class="text-3xl font-bold mb-2" id="heading-${block.id}">${renderRichText(value.rich_text)}</h1>`;
         
         // 支援標題的 Toggle 功能
         if (value.is_toggleable && value.children && value.children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
           content = `<details class="mb-4">
-            <summary class="text-3xl font-bold mb-2 cursor-pointer">${renderRichText(value.rich_text)}</summary>
+            <summary class="text-3xl font-bold mb-2 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
             <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
           </details>`;
         }
@@ -87,13 +140,13 @@ async function renderBlock(block) {
       }
       
       case 'heading_2': {
-        let content = `<h2 class="text-2xl font-bold mb-2">${renderRichText(value.rich_text)}</h2>`;
+        let content = `<h2 class="text-2xl font-bold mb-2" id="heading-${block.id}">${renderRichText(value.rich_text)}</h2>`;
         
         // 支援標題的 Toggle 功能
         if (value.is_toggleable && value.children && value.children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
           content = `<details class="mb-4">
-            <summary class="text-2xl font-bold mb-2 cursor-pointer">${renderRichText(value.rich_text)}</summary>
+            <summary class="text-2xl font-bold mb-2 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
             <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
           </details>`;
         }
@@ -102,13 +155,13 @@ async function renderBlock(block) {
       }
       
       case 'heading_3': {
-        let content = `<h3 class="text-xl font-bold mb-2">${renderRichText(value.rich_text)}</h3>`;
+        let content = `<h3 class="text-xl font-bold mb-2" id="heading-${block.id}">${renderRichText(value.rich_text)}</h3>`;
         
         // 支援標題的 Toggle 功能
         if (value.is_toggleable && value.children && value.children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
           content = `<details class="mb-4">
-            <summary class="text-xl font-bold mb-2 cursor-pointer">${renderRichText(value.rich_text)}</summary>
+            <summary class="text-xl font-bold mb-2 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
             <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
           </details>`;
         }
@@ -387,16 +440,73 @@ async function renderBlock(block) {
       }
 
       case 'table_of_contents': {
-        return `<div class="mb-4 p-4 border-l-4 border-blue-400 bg-blue-50 text-sm text-gray-700 rounded">[Table of Contents]</div>`;
+        // 改進的目錄實現，使用 Tailwind 樣式
+        return `<nav class="mb-6 p-4 border rounded-lg bg-gray-50">
+          <div class="text-lg font-medium mb-2 text-gray-700 border-b pb-2">目錄</div>
+          <div class="toc-content space-y-1 text-gray-600">
+            <!-- 目錄內容將通過 JavaScript 動態填充 -->
+            <div class="text-sm text-center text-gray-400 py-2">載入目錄中...</div>
+          </div>
+          <script>
+            // 在頁面載入完成後填充目錄
+            document.addEventListener('DOMContentLoaded', () => {
+              const tocContainer = document.querySelector('.toc-content');
+              if (!tocContainer) return;
+              
+              // 清空載入訊息
+              tocContainer.innerHTML = '';
+              
+              // 查找所有標題
+              const headings = document.querySelectorAll('h1, h2, h3');
+              if (headings.length === 0) {
+                tocContainer.innerHTML = '<div class="text-sm text-center text-gray-400 py-2">無可用目錄項目</div>';
+                return;
+              }
+              
+              // 創建目錄項目
+              headings.forEach(heading => {
+                const level = parseInt(heading.tagName.substring(1));
+                const text = heading.textContent;
+                const id = heading.id || '';
+                
+                const indentClass = level === 1 ? '' : \`ml-\${(level-1)*4}\`;
+                const sizeClass = level === 1 ? 'text-base font-medium' : 'text-sm';
+                
+                const tocItem = document.createElement('div');
+                tocItem.className = \`\${indentClass} \${sizeClass} py-1 hover:text-blue-600\`;
+                
+                if (id) {
+                  const link = document.createElement('a');
+                  link.href = \`#\${id}\`;
+                  link.textContent = text;
+                  link.className = 'hover:underline';
+                  tocItem.appendChild(link);
+                } else {
+                  tocItem.textContent = text;
+                }
+                
+                tocContainer.appendChild(tocItem);
+              });
+            });
+          </script>
+        </nav>`;
       }
 
       case 'column_list': {
         if (!block.children || block.children.length === 0) return '';
-        const columnHtml = await Promise.all(block.children.map(async col => {
+        
+        // 計算每個欄位的寬度
+        const columnCount = block.children.length;
+        const columnWidth = Math.floor(12 / Math.min(columnCount, 4)); // 最多4欄，使用12格網格系統
+        
+        const columnHtml = await Promise.all(block.children.map(async (col, index) => {
           const childrenHtml = await renderBlocksInternal(col.children || []);
-          return `<div class="flex-1 min-w-[200px] px-2">${childrenHtml.join('')}</div>`;
+          return `<div class="w-full md:w-${columnWidth}/12 p-2">
+            <div class="h-full">${childrenHtml.join('')}</div>
+          </div>`;
         }));
-        return `<div class="flex flex-wrap gap-4 mb-4">${columnHtml.join('')}</div>`;
+        
+        return `<div class="flex flex-wrap -mx-2 mb-6">${columnHtml.join('')}</div>`;
       }
 
       // 處理空白區塊 - 這是為了兼容可能的其他空白區塊類型
