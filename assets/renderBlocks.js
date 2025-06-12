@@ -1,4 +1,4 @@
-// renderBlocks.js - 精簡優化版
+// renderBlocks.js
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
