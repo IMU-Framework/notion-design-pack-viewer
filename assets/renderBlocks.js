@@ -62,19 +62,19 @@ window.renderBlocks = async function(blocks) {
 // 標題配置 - 集中管理標題樣式
 const headingConfig = {
   'heading_1': { 
-    textClass: 'text-6xl', 
-    // marginTop: 'mt-12', 
-    // marginBottom: 'mb-4' 
+    textClass: 'text-4xl', 
+    marginTop: 'mt-12', 
+    marginBottom: 'mb-4' 
   },
   'heading_2': { 
-    textClass: 'text-4xl', 
-    // marginTop: 'mt-9', 
-    // marginBottom: 'mb-3' 
+    textClass: 'text-2xl', 
+    marginTop: 'mt-9', 
+    marginBottom: 'mb-3' 
   },
   'heading_3': { 
-    textClass: 'text-2xl', 
-    // marginTop: 'mt-7', 
-    // marginBottom: 'mb-2' 
+    textClass: 'text-xl', 
+    marginTop: 'mt-7', 
+    marginBottom: 'mb-2' 
   }
 };
 
