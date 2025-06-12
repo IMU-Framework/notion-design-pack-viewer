@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -42,7 +41,7 @@
 
     function updateBreadcrumb(path) {
       const breadcrumb = document.getElementById("breadcrumb-nav");
-      breadcrumb.innerHTML = "";
+      breadcrumb.innerHTML = ""; // 清空原本內容
 
       path.forEach((p, idx) => {
         if (idx > 0) {
@@ -68,8 +67,8 @@
     function renderIcon(icon, title) {
       if (!icon) return title;
       return icon.startsWith("http")
-        ? `<img src="\${icon}" class="w-4 h-4 mr-2 inline" />\${title}`
-        : `<span class="mr-2">\${icon}</span>\${title}`;
+        ? `<img src="${icon}" class="w-4 h-4 mr-2 inline" />${title}`
+        : `<span class="mr-2">${icon}</span>${title}`;
     }
 
     async function initSidebar() {
@@ -119,13 +118,14 @@
           return new Date(a.CreatedTime) - new Date(b.CreatedTime);
         });
 
+        // ✅ Render sidebar groups (no Home)
         parentMeta.forEach(({ title: groupTitle }) => {
           const details = document.createElement("details");
           details.classList.add("group");
 
           const summary = document.createElement("summary");
           summary.className = "flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg";
-          summary.innerHTML = `<span class="flex items-center">\${groupTitle}</span>
+          summary.innerHTML = `<span class="flex items-center">${groupTitle}</span>
             <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>`;
@@ -145,9 +145,10 @@
               document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active"));
               a.classList.add("active");
               updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
-              const mode = item.View_Mode === 'embed' ? 'embed' : 'api';
-              const url = `viewer.html?mode=\${mode}&pageId=\${item.Page_ID}`;
-              viewer.innerHTML = `<iframe src="\${url}" class="w-full h-full border-none"></iframe>`;
+              const url = item.View_Mode?.toLowerCase() === "db"
+                ? `db_view.html?dbId=${item.Page_ID}`
+                : `page_view.html?pageId=${item.Page_ID}`;
+              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
             };
             li.appendChild(a);
             ul.appendChild(li);
@@ -158,15 +159,18 @@
           sidebar.appendChild(details);
         });
 
+        // ✅ 點擊 "IMU 導覽" 會回到 Home
         if (homePage) {
           document.getElementById("nav-header").onclick = () => {
             document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active"));
             updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title]);
-            const mode = homePage.View_Mode === 'embed' ? 'embed' : 'api';
-            const url = `viewer.html?mode=\${mode}&pageId=\${homePage.Page_ID}`;
-            viewer.innerHTML = `<iframe src="\${url}" class="w-full h-full border-none"></iframe>`;
+            const url = homePage.View_Mode === "db"
+              ? `db_view.html?dbId=${homePage.Page_ID}`
+              : `page_view.html?pageId=${homePage.Page_ID}`;
+            viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
           };
 
+          // ⬇️ 預設載入 Home
           document.getElementById("nav-header").click();
         }
       } catch (err) {
