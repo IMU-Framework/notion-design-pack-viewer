@@ -8,8 +8,8 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
   <div class="p-6 max-w-4xl mx-auto">
-    <h1 class="text-2xl font-bold mb-4">📊 Database View (Page內所有資料庫)</h1>
-    <div id="db-list" class="space-y-4 text-sm">🔄 載入中...</div>
+    <h1 class="text-2xl font-bold mb-4">Database View</h1>
+    <div id="db-list" class="space-y-4 text-sm">Loading...</div>
   </div>
 
   <script>
@@ -20,7 +20,7 @@
       const container = document.getElementById("db-list");
 
       if (!pageId || pageId === "null") {
-        container.innerHTML = "⚠️ 無效的 Page ID";
+        container.innerHTML = "⚠️ Invalid Page ID";
         return;
       }
 
@@ -30,7 +30,7 @@
 
         const data = await response.json();
         if (!data.databases?.length) {
-          container.innerHTML = "📭 此頁面中沒有任何資料庫區塊。";
+          container.innerHTML = "no database in this page.";
           return;
         }
 
@@ -40,7 +40,7 @@
           div.className = "p-4 border border-gray-300 rounded bg-white shadow-sm";
 
           div.innerHTML = `
-            <div class="font-semibold">#${index + 1}：${db.title || "（未命名資料庫）"}</div>
+            <div class="font-semibold">#${index + 1}：${db.title || "Untitled Database"}</div>
             <div class="text-gray-500 break-all">ID：<code>${db.id}</code></div>
           `;
           container.appendChild(div);
