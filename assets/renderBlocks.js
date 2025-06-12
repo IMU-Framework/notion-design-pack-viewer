@@ -1,85 +1,8 @@
-// renderBlocks.js - 修正 equation 渲染問題
+// renderBlocks.js
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
     [Error rendering block: ${type}] ${errorMessage}
-  </div>`;
-}
-
-// 初始化 KaTeX
-function initKaTeX() {
-  // 檢查是否已經載入 KaTeX
-  if (document.querySelector('script[src*="katex"]')) {
-    return;
-  }
-  
-  // 添加 KaTeX CSS
-  const katexCSS = document.createElement('link');
-  katexCSS.rel = 'stylesheet';
-  katexCSS.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css';
-  katexCSS.integrity = 'sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn';
-  katexCSS.crossOrigin = 'anonymous';
-  document.head.appendChild(katexCSS);
-  
-  // 添加 KaTeX JS
-  const katexScript = document.createElement('script');
-  katexScript.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js';
-  katexScript.integrity = 'sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx';
-  katexScript.crossOrigin = 'anonymous';
-  document.head.appendChild(katexScript);
-  
-  // 添加 KaTeX 自動渲染擴展
-  const autoRenderScript = document.createElement('script');
-  autoRenderScript.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js';
-  autoRenderScript.integrity = 'sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05';
-  autoRenderScript.crossOrigin = 'anonymous';
-  autoRenderScript.onload = function() {
-    // 等待 KaTeX 主腳本載入完成
-    if (window.katex) {
-      renderMathInElement();
-    } else {
-      katexScript.onload = renderMathInElement;
-    }
-  };
-  document.head.appendChild(autoRenderScript);
-}
-
-// 渲染頁面中的所有數學公式
-function renderMathInElement() {
-  if (window.renderMathInElement) {
-    window.renderMathInElement(document.body, {
-      delimiters: [
-        {left: '$$', right: '$$', display: true},
-        {left: '$', right: '$', display: false},
-        {left: '\\(', right: '\\)', display: false},
-        {left: '\\[', right: '\\]', display: true}
-      ],
-      throwOnError: false
-    });
-  }
-}
-
-window.renderBlocks = async function(blocks) {
-  // 初始化 KaTeX
-  initKaTeX();
-  
-  const result = await renderBlocksInternal(blocks);
-  
-  // 確保在所有區塊渲染完成後再次嘗試渲染數學公式
-  setTimeout(() => {
-    if (window.renderMathInElement) {
-      renderMathInElement();
-    }
-  }, 100);
-  
-  return result;
-};
-
-// 支援 TeX 風格方程式
-function renderEquation(expression) {
-  // 使用 KaTeX 格式，雙美元符號表示顯示模式
-  return `<div class="mb-4 py-2 px-4 bg-gray-50 overflow-x-auto">
-    <div class="equation">$$${expression}$$</div>
   </div>`;
 }
 
@@ -127,22 +50,10 @@ function renderCalloutIcon(icon) {
   return '';
 }
 
-// 支援 TeX 風格方程式與 MathJax
-function renderEquation(expression) {
-  // 使用 MathJax 格式
-  return `<div class="mb-4 py-2 px-4 bg-gray-50 overflow-x-auto">
-    <div class="math-inline">$${expression}$</div>
-  </div>`;
-}
-
-// 生成目錄項目
-function generateTocItem(headingText, level) {
-  const indentClass = level === 1 ? '' : `ml-${(level-1)*4}`;
-  const sizeClass = level === 1 ? 'text-base font-medium' : 'text-sm';
-  return `<div class="${indentClass} ${sizeClass} py-1 hover:text-blue-600">
-    ${headingText}
-  </div>`;
-}
+window.renderBlocks = async function(blocks) {
+  const result = await renderBlocksInternal(blocks);
+  return result;
+};
 
 async function renderBlock(block) {
   try {
@@ -440,7 +351,10 @@ async function renderBlock(block) {
       }
 
       case 'equation': {
-        return renderEquation(value.expression);
+        // 顯示原始表達式，不進行渲染
+        return `<div class="mb-4 py-2 px-4 bg-gray-50 overflow-x-auto">
+          <code>${value.expression}</code>
+        </div>`;
       }
 
       case 'video': {
@@ -472,73 +386,17 @@ async function renderBlock(block) {
       }
 
       case 'table_of_contents': {
-        // 改進的目錄實現，使用 Tailwind 樣式
-        return `<nav class="mb-6 p-4 border rounded-lg bg-gray-50">
-          <div class="text-lg font-medium mb-2 text-gray-700 border-b pb-2">目錄</div>
-          <div class="toc-content space-y-1 text-gray-600">
-            <!-- 目錄內容將通過 JavaScript 動態填充 -->
-            <div class="text-sm text-center text-gray-400 py-2">載入目錄中...</div>
-          </div>
-          <script>
-            // 在頁面載入完成後填充目錄
-            document.addEventListener('DOMContentLoaded', () => {
-              const tocContainer = document.querySelector('.toc-content');
-              if (!tocContainer) return;
-              
-              // 清空載入訊息
-              tocContainer.innerHTML = '';
-              
-              // 查找所有標題
-              const headings = document.querySelectorAll('h1, h2, h3');
-              if (headings.length === 0) {
-                tocContainer.innerHTML = '<div class="text-sm text-center text-gray-400 py-2">無可用目錄項目</div>';
-                return;
-              }
-              
-              // 創建目錄項目
-              headings.forEach(heading => {
-                const level = parseInt(heading.tagName.substring(1));
-                const text = heading.textContent;
-                const id = heading.id || '';
-                
-                const indentClass = level === 1 ? '' : \`ml-\${(level-1)*4}\`;
-                const sizeClass = level === 1 ? 'text-base font-medium' : 'text-sm';
-                
-                const tocItem = document.createElement('div');
-                tocItem.className = \`\${indentClass} \${sizeClass} py-1 hover:text-blue-600\`;
-                
-                if (id) {
-                  const link = document.createElement('a');
-                  link.href = \`#\${id}\`;
-                  link.textContent = text;
-                  link.className = 'hover:underline';
-                  tocItem.appendChild(link);
-                } else {
-                  tocItem.textContent = text;
-                }
-                
-                tocContainer.appendChild(tocItem);
-              });
-            });
-          </script>
-        </nav>`;
+        // 簡單顯示一個提示，不進行實際渲染
+        return `<div class="mb-4 p-4 bg-gray-50 border rounded">
+          <div class="text-gray-500">目錄功能已停用</div>
+        </div>`;
       }
 
       case 'column_list': {
-        if (!block.children || block.children.length === 0) return '';
-        
-        // 計算每個欄位的寬度
-        const columnCount = block.children.length;
-        const columnWidth = Math.floor(12 / Math.min(columnCount, 4)); // 最多4欄，使用12格網格系統
-        
-        const columnHtml = await Promise.all(block.children.map(async (col, index) => {
-          const childrenHtml = await renderBlocksInternal(col.children || []);
-          return `<div class="w-full md:w-${columnWidth}/12 p-2">
-            <div class="h-full">${childrenHtml.join('')}</div>
-          </div>`;
-        }));
-        
-        return `<div class="flex flex-wrap -mx-2 mb-6">${columnHtml.join('')}</div>`;
+        // 簡單顯示一個提示，不進行實際渲染
+        return `<div class="mb-4 p-4 bg-gray-50 border rounded">
+          <div class="text-gray-500">欄位列表功能已停用</div>
+        </div>`;
       }
 
       // 處理空白區塊 - 這是為了兼容可能的其他空白區塊類型
