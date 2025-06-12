@@ -63,17 +63,17 @@ window.renderBlocks = async function(blocks) {
 const headingConfig = {
   'heading_1': { 
     textClass: 'text-3xl', 
-    marginTop: 'mt-15', 
+    marginTop: 'mt-12', 
     marginBottom: 'mb-4' 
   },
   'heading_2': { 
     textClass: 'text-2xl', 
-    marginTop: 'mt-12', 
+    marginTop: 'mt-9', 
     marginBottom: 'mb-3' 
   },
   'heading_3': { 
     textClass: 'text-xl', 
-    marginTop: 'mt-10', 
+    marginTop: 'mt-7', 
     marginBottom: 'mb-2' 
   }
 };
