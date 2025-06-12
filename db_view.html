@@ -6,21 +6,52 @@
   <title>Database View</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100">
-  <div class="p-6">
-    <h1 class="text-2xl font-bold text-gray-800 mb-4">📊 Database View</h1>
-    <iframe id="notion-db-iframe" class="w-full h-screen border rounded-md" frameborder="0"></iframe>
+<body class="bg-gray-100 text-gray-800">
+  <div class="p-6 max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">📊 Database View (Page內所有資料庫)</h1>
+    <div id="db-list" class="space-y-4 text-sm">🔄 載入中...</div>
   </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const pageId = urlParams.get('pageId');
-    
-    if (pageId) {
-      document.getElementById('notion-db-iframe').src = `https://imu-framework.notion.site/${pageId}`;
-    } else {
-      document.getElementById('notion-db-iframe').outerHTML = '<p class="text-red-600">⚠️ 無效的 Page ID</p>';
+
+    async function loadDatabases() {
+      const container = document.getElementById("db-list");
+
+      if (!pageId || pageId === "null") {
+        container.innerHTML = "⚠️ 無效的 Page ID";
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/page_with_db?pageId=${pageId}`);
+        if (!response.ok) throw new Error("無法取得資料");
+
+        const data = await response.json();
+        if (!data.databases?.length) {
+          container.innerHTML = "📭 此頁面中沒有任何資料庫區塊。";
+          return;
+        }
+
+        container.innerHTML = "";
+        data.databases.forEach((db, index) => {
+          const div = document.createElement("div");
+          div.className = "p-4 border border-gray-300 rounded bg-white shadow-sm";
+
+          div.innerHTML = `
+            <div class="font-semibold">#${index + 1}：${db.title || "（未命名資料庫）"}</div>
+            <div class="text-gray-500 break-all">ID：<code>${db.id}</code></div>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = "❌ 載入錯誤：" + err.message;
+      }
     }
+
+    window.addEventListener("DOMContentLoaded", loadDatabases);
   </script>
 </body>
 </html>
