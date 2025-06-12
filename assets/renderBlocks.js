@@ -1,4 +1,4 @@
-// renderBlocks.js
+// renderBlocks.js - 優化標題間距和巢狀列表排版
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
@@ -68,13 +68,14 @@ async function renderBlock(block) {
 
     switch (type) {
       case 'heading_1': {
-        let content = `<h1 class="text-3xl font-bold mb-2" id="heading-${block.id}">${renderRichText(value.rich_text)}</h1>`;
+        // 增加上方間距 mt-8 (2rem)
+        let content = `<h1 class="text-3xl font-bold mb-3 mt-8" id="heading-${block.id}">${renderRichText(value.rich_text)}</h1>`;
         
         // 支援標題的 Toggle 功能
         if (value.is_toggleable && value.children && value.children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content = `<details class="mb-4">
-            <summary class="text-3xl font-bold mb-2 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
+          content = `<details class="mb-4 mt-8">
+            <summary class="text-3xl font-bold mb-3 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
             <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
           </details>`;
         }
@@ -83,13 +84,14 @@ async function renderBlock(block) {
       }
       
       case 'heading_2': {
-        let content = `<h2 class="text-2xl font-bold mb-2" id="heading-${block.id}">${renderRichText(value.rich_text)}</h2>`;
+        // 增加上方間距 mt-6 (1.5rem)
+        let content = `<h2 class="text-2xl font-bold mb-3 mt-6" id="heading-${block.id}">${renderRichText(value.rich_text)}</h2>`;
         
         // 支援標題的 Toggle 功能
         if (value.is_toggleable && value.children && value.children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content = `<details class="mb-4">
-            <summary class="text-2xl font-bold mb-2 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
+          content = `<details class="mb-4 mt-6">
+            <summary class="text-2xl font-bold mb-3 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
             <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
           </details>`;
         }
@@ -98,12 +100,13 @@ async function renderBlock(block) {
       }
       
       case 'heading_3': {
-        let content = `<h3 class="text-xl font-bold mb-2" id="heading-${block.id}">${renderRichText(value.rich_text)}</h3>`;
+        // 增加上方間距 mt-5 (1.25rem)
+        let content = `<h3 class="text-xl font-bold mb-2 mt-5" id="heading-${block.id}">${renderRichText(value.rich_text)}</h3>`;
         
         // 支援標題的 Toggle 功能
         if (value.is_toggleable && value.children && value.children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content = `<details class="mb-4">
+          content = `<details class="mb-4 mt-5">
             <summary class="text-xl font-bold mb-2 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
             <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
           </details>`;
@@ -242,17 +245,17 @@ async function renderBlock(block) {
             child.type === 'bulleted_list_item' || child.type === 'numbered_list_item');
           
           if (hasListItems) {
-            // 如果子項目包含列表項目，直接添加
-            itemContent += childrenHtml.join('');
+            // 如果子項目包含列表項目，直接添加，但使用一致的縮進和邊框
+            itemContent += `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
           } else {
             // 如果子項目不包含列表項目，添加額外的縮進
-            itemContent += `<div class="mt-2">${childrenHtml.join('')}</div>`;
+            itemContent += `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
           }
         }
         
         return { 
           type, 
-          html: `<li>${itemContent}</li>` 
+          html: `<li class="mb-2">${itemContent}</li>` 
         };
       }
 
@@ -267,17 +270,17 @@ async function renderBlock(block) {
             child.type === 'bulleted_list_item' || child.type === 'numbered_list_item');
           
           if (hasListItems) {
-            // 如果子項目包含列表項目，直接添加
-            itemContent += childrenHtml.join('');
+            // 如果子項目包含列表項目，直接添加，但使用一致的縮進和邊框
+            itemContent += `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
           } else {
             // 如果子項目不包含列表項目，添加額外的縮進
-            itemContent += `<div class="mt-2">${childrenHtml.join('')}</div>`;
+            itemContent += `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
           }
         }
         
         return { 
           type, 
-          html: `<li>${itemContent}</li>` 
+          html: `<li class="mb-2">${itemContent}</li>` 
         };
       }
 
@@ -464,5 +467,6 @@ async function renderBlocksInternal(blocks) {
 function wrapList(type, items) {
   const tag = type === 'numbered_list_item' ? 'ol' : 'ul';
   const listClass = tag === 'ol' ? 'list-decimal' : 'list-disc';
-  return `<${tag} class="pl-6 space-y-1 mb-4 ${listClass}">${items.join('')}</${tag}>`;
+  // 修改列表間距，使用 space-y-2 而不是 space-y-1，並移除 mb-4 (會在外層添加)
+  return `<${tag} class="pl-6 space-y-2 ${listClass}">${items.join('')}</${tag}>`;
 }
