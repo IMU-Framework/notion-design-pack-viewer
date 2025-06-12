@@ -1,4 +1,4 @@
-// renderBlocks.js - 優化巢狀列表的樣式標記
+// renderBlocks.js - 精簡優化版
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
@@ -50,14 +50,82 @@ function renderCalloutIcon(icon) {
   return '';
 }
 
+// 追踪列表的嵌套層級
+let bulletedListLevel = 0;
+let numberedListLevel = 0;
+
 window.renderBlocks = async function(blocks) {
   const result = await renderBlocksInternal(blocks);
   return result;
 };
 
-// 追踪列表的嵌套層級
-let bulletedListLevel = 0;
-let numberedListLevel = 0;
+// 標題配置 - 集中管理標題樣式
+const headingConfig = {
+  'heading_1': { 
+    textClass: 'text-3xl', 
+    marginTop: 'mt-12', 
+    marginBottom: 'mb-3' 
+  },
+  'heading_2': { 
+    textClass: 'text-2xl', 
+    marginTop: 'mt-9', 
+    marginBottom: 'mb-3' 
+  },
+  'heading_3': { 
+    textClass: 'text-xl', 
+    marginTop: 'mt-7', 
+    marginBottom: 'mb-2' 
+  }
+};
+
+// 顏色配置 - 集中管理顏色樣式
+const colorMap = {
+  'gray': { bg: 'bg-gray-50', border: 'border-gray-400' },
+  'brown': { bg: 'bg-amber-50', border: 'border-amber-400' },
+  'orange': { bg: 'bg-orange-50', border: 'border-orange-400' },
+  'yellow': { bg: 'bg-yellow-50', border: 'border-yellow-400' },
+  'green': { bg: 'bg-green-50', border: 'border-green-400' },
+  'blue': { bg: 'bg-blue-50', border: 'border-blue-400' },
+  'purple': { bg: 'bg-purple-50', border: 'border-purple-400' },
+  'pink': { bg: 'bg-pink-50', border: 'border-pink-400' },
+  'red': { bg: 'bg-red-50', border: 'border-red-400' },
+};
+
+// 渲染標題函數 - 整合標題渲染邏輯
+async function renderHeading(block, headingType) {
+  const { type } = block;
+  const value = block[type];
+  const config = headingConfig[headingType];
+  
+  // 如果沒有配置，返回錯誤
+  if (!config) return renderErrorBlock(headingType, 'Missing heading configuration');
+  
+  // 標準標題
+  let content = `<h${headingType.slice(-1)} class="${config.textClass} font-bold ${config.marginBottom} ${config.marginTop}" id="heading-${block.id}">
+    ${renderRichText(value.rich_text)}
+  </h${headingType.slice(-1)}>`;
+  
+  // 可折疊標題
+  if (value.is_toggleable && value.children && value.children.length > 0) {
+    const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+    content = `<details class="mb-4 ${config.marginTop}">
+      <summary class="${config.textClass} font-bold ${config.marginBottom} cursor-pointer" id="heading-${block.id}">
+        ${renderRichText(value.rich_text)}
+      </summary>
+      <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
+    </details>`;
+  }
+  
+  return content;
+}
+
+// 處理列表項目的子內容 - 整合列表項目子內容處理邏輯
+async function processListItemChildren(value) {
+  if (!value.children || value.children.length === 0) return '';
+  
+  const childrenHtml = await renderBlocksInternal(value.children);
+  return `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
+}
 
 async function renderBlock(block) {
   try {
@@ -66,58 +134,14 @@ async function renderBlock(block) {
 
     // 處理空白區塊 - 檢查段落是否為空
     if (type === 'paragraph' && (!value.rich_text || value.rich_text.length === 0)) {
-      // 返回一個帶有適當間距的空白區塊
       return `<div class="h-6"></div>`;
     }
 
     switch (type) {
-      case 'heading_1': {
-        // 增加上方間距 mt-8 (2rem)
-        let content = `<h1 class="text-3xl font-bold mb-3 mt-8" id="heading-${block.id}">${renderRichText(value.rich_text)}</h1>`;
-        
-        // 支援標題的 Toggle 功能
-        if (value.is_toggleable && value.children && value.children.length > 0) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content = `<details class="mb-4 mt-8">
-            <summary class="text-3xl font-bold mb-3 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
-            <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
-          </details>`;
-        }
-        
-        return content;
-      }
-      
-      case 'heading_2': {
-        // 增加上方間距 mt-6 (1.5rem)
-        let content = `<h2 class="text-2xl font-bold mb-3 mt-6" id="heading-${block.id}">${renderRichText(value.rich_text)}</h2>`;
-        
-        // 支援標題的 Toggle 功能
-        if (value.is_toggleable && value.children && value.children.length > 0) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content = `<details class="mb-4 mt-6">
-            <summary class="text-2xl font-bold mb-3 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
-            <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
-          </details>`;
-        }
-        
-        return content;
-      }
-      
-      case 'heading_3': {
-        // 增加上方間距 mt-5 (1.25rem)
-        let content = `<h3 class="text-xl font-bold mb-2 mt-5" id="heading-${block.id}">${renderRichText(value.rich_text)}</h3>`;
-        
-        // 支援標題的 Toggle 功能
-        if (value.is_toggleable && value.children && value.children.length > 0) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
-          content = `<details class="mb-4 mt-5">
-            <summary class="text-xl font-bold mb-2 cursor-pointer" id="heading-${block.id}">${renderRichText(value.rich_text)}</summary>
-            <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
-          </details>`;
-        }
-        
-        return content;
-      }
+      case 'heading_1':
+      case 'heading_2':
+      case 'heading_3':
+        return renderHeading(block, type);
 
       case 'paragraph': {
         let content = `<p class="mb-4 leading-relaxed">${renderRichText(value.rich_text)}</p>`;
@@ -159,23 +183,9 @@ async function renderBlock(block) {
         let borderColor = 'border-blue-400';
         
         // 根據顏色調整背景和邊框
-        if (value.color && value.color !== 'default') {
-          const colorMap = {
-            'gray': { bg: 'bg-gray-50', border: 'border-gray-400' },
-            'brown': { bg: 'bg-amber-50', border: 'border-amber-400' },
-            'orange': { bg: 'bg-orange-50', border: 'border-orange-400' },
-            'yellow': { bg: 'bg-yellow-50', border: 'border-yellow-400' },
-            'green': { bg: 'bg-green-50', border: 'border-green-400' },
-            'blue': { bg: 'bg-blue-50', border: 'border-blue-400' },
-            'purple': { bg: 'bg-purple-50', border: 'border-purple-400' },
-            'pink': { bg: 'bg-pink-50', border: 'border-pink-400' },
-            'red': { bg: 'bg-red-50', border: 'border-red-400' },
-          };
-          
-          if (colorMap[value.color]) {
-            bgColor = colorMap[value.color].bg;
-            borderColor = colorMap[value.color].border;
-          }
+        if (value.color && value.color !== 'default' && colorMap[value.color]) {
+          bgColor = colorMap[value.color].bg;
+          borderColor = colorMap[value.color].border;
         }
         
         // 如果沒有子區塊，直接渲染
@@ -242,20 +252,10 @@ async function renderBlock(block) {
         bulletedListLevel++;
         let itemContent = renderRichText(value.rich_text);
         
-        // 處理子項目
-        if (value.children && value.children.length > 0) {
-          const childrenHtml = await renderBlocksInternal(value.children);
-          // 檢查子項目是否包含列表項目
-          const hasListItems = value.children.some(child => 
-            child.type === 'bulleted_list_item' || child.type === 'numbered_list_item');
-          
-          if (hasListItems) {
-            // 如果子項目包含列表項目，直接添加，但使用一致的縮進和邊框
-            itemContent += `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
-          } else {
-            // 如果子項目不包含列表項目，添加額外的縮進
-            itemContent += `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
-          }
+        // 處理子項目 - 使用公共函數
+        const childrenContent = await processListItemChildren(value);
+        if (childrenContent) {
+          itemContent += childrenContent;
         }
         
         const result = { 
@@ -272,20 +272,10 @@ async function renderBlock(block) {
         numberedListLevel++;
         let itemContent = renderRichText(value.rich_text);
         
-        // 處理子項目
-        if (value.children && value.children.length > 0) {
-          const childrenHtml = await renderBlocksInternal(value.children);
-          // 檢查子項目是否包含列表項目
-          const hasListItems = value.children.some(child => 
-            child.type === 'bulleted_list_item' || child.type === 'numbered_list_item');
-          
-          if (hasListItems) {
-            // 如果子項目包含列表項目，直接添加，但使用一致的縮進和邊框
-            itemContent += `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
-          } else {
-            // 如果子項目不包含列表項目，添加額外的縮進
-            itemContent += `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
-          }
+        // 處理子項目 - 使用公共函數
+        const childrenContent = await processListItemChildren(value);
+        if (childrenContent) {
+          itemContent += childrenContent;
         }
         
         const result = { 
@@ -296,6 +286,36 @@ async function renderBlock(block) {
         
         numberedListLevel--;
         return result;
+      }
+
+      case 'to_do': {
+        const checked = value.checked ? 'checked' : '';
+        const id = `checkbox-${block.id}`;
+        const checkedClass = value.checked ? 'line-through text-gray-500' : '';
+        
+        // 基本 to_do 項目
+        let content = `
+          <div class="flex items-start mb-2">
+            <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" 
+              onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
+            <div class="${checkedClass}">${renderRichText(value.rich_text)}</div>
+          </div>
+        `;
+        
+        // 處理子項目
+        if (value.children && value.children.length > 0) {
+          const childrenHtml = await renderBlocksInternal(value.children);
+          content = `<div class="mb-4">
+            <div class="flex items-start">
+              <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" 
+                onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
+              <div class="${checkedClass}">${renderRichText(value.rich_text)}</div>
+            </div>
+            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml.join('')}</div>
+          </div>`;
+        }
+        
+        return content;
       }
 
       case 'divider':
@@ -332,31 +352,6 @@ async function renderBlock(block) {
         return tableHtml;
       }
 
-      case 'to_do': {
-        const checked = value.checked ? 'checked' : '';
-        const id = `checkbox-${block.id}`;
-        let content = `
-          <div class="flex items-start mb-2">
-            <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
-            <div class="${value.checked ? 'line-through text-gray-500' : ''}">${renderRichText(value.rich_text)}</div>
-          </div>
-        `;
-        
-        // 處理子項目
-        if (value.children && value.children.length > 0) {
-          const childrenHtml = await renderBlocksInternal(value.children);
-          content = `<div class="mb-4">
-            <div class="flex items-start">
-              <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
-              <div class="${value.checked ? 'line-through text-gray-500' : ''}">${renderRichText(value.rich_text)}</div>
-            </div>
-            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml.join('')}</div>
-          </div>`;
-        }
-        
-        return content;
-      }
-
       case 'bookmark': {
         return `<div class="border rounded p-3 bg-gray-50 mb-4">
           <a href="${value.url}" target="_blank" class="text-blue-600 flex items-center">
@@ -368,7 +363,6 @@ async function renderBlock(block) {
       }
 
       case 'equation': {
-        // 顯示原始表達式，不進行渲染
         return `<div class="mb-4 py-2 px-4 bg-gray-50 overflow-x-auto">
           <code>${value.expression}</code>
         </div>`;
@@ -402,21 +396,12 @@ async function renderBlock(block) {
         </div>`;
       }
 
-      case 'table_of_contents': {
-        // 簡單顯示一個提示，不進行實際渲染
+      case 'table_of_contents':
+      case 'column_list':
         return `<div class="mb-4 p-4 bg-gray-50 border rounded">
-          <div class="text-gray-500">目錄功能已停用</div>
+          <div class="text-gray-500">${type === 'table_of_contents' ? '目錄' : '欄位列表'}功能已停用</div>
         </div>`;
-      }
 
-      case 'column_list': {
-        // 簡單顯示一個提示，不進行實際渲染
-        return `<div class="mb-4 p-4 bg-gray-50 border rounded">
-          <div class="text-gray-500">欄位列表功能已停用</div>
-        </div>`;
-      }
-
-      // 處理空白區塊 - 這是為了兼容可能的其他空白區塊類型
       case 'unsupported':
         return `<div class="h-6"></div>`;
 
