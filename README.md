@@ -8,6 +8,6 @@ notion-design-pack-viewer/
 │   └── page.js            # 根據 pageId 抓取 Notion block 結構（含子層）並轉為前端可用格式
 ├── assets/
 │   └── renderBlocks.js    # 前端用於將 Notion Block 陣列轉換為 HTML 的渲染引擎，支援段落、列表、標題、圖片、code block 等格式
-├── package.json           # Node.js 依賴（@notionhq/client）與基本資訊
+└── package.json           # Node.js 依賴（@notionhq/client）與基本資訊
 
 ``` 
