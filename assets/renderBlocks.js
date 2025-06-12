@@ -1,4 +1,4 @@
-// renderBlocks.js - 支援空白區塊的全面優化版本
+// renderBlocks.js - 整合版本：支援所有區塊類型並強化互動功能
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
@@ -52,6 +52,11 @@ function renderCalloutIcon(icon) {
   }
   
   return '';
+}
+
+// 支援 TeX 風格方程式與 MathJax
+function renderEquation(expression) {
+  return `<div class="mb-4"><span class="math-inline">\(${expression}\)</span></div>`;
 }
 
 async function renderBlock(block) {
@@ -291,7 +296,7 @@ async function renderBlock(block) {
           if (value.has_column_header) {
             tableHtml += '<thead><tr>';
             for (const cell of value.children[0].table_row.cells) {
-              tableHtml += `<th class="border border-gray-300 px-4 py-2 bg-gray-100">${renderRichText(cell)}</th>`;
+              tableHtml += `<th class="border border-gray-300 px-4 py-2 bg-gray-100 font-bold">${renderRichText(cell)}</th>`;
             }
             tableHtml += '</tr></thead>';
           }
@@ -301,9 +306,10 @@ async function renderBlock(block) {
           const startRow = value.has_column_header ? 1 : 0;
           for (let i = startRow; i < value.children.length; i++) {
             tableHtml += '<tr>';
-            for (const cell of value.children[i].table_row.cells) {
-              tableHtml += `<td class="border border-gray-300 px-4 py-2">${renderRichText(cell)}</td>`;
-            }
+            value.children[i].table_row.cells.forEach((cell, colIdx) => {
+              const className = (value.has_row_header && colIdx === 0) ? 'bg-gray-100 font-bold' : '';
+              tableHtml += `<td class="border border-gray-300 px-4 py-2 ${className}">${renderRichText(cell)}</td>`;
+            });
             tableHtml += '</tr>';
           }
           tableHtml += '</tbody>';
@@ -315,9 +321,10 @@ async function renderBlock(block) {
 
       case 'to_do': {
         const checked = value.checked ? 'checked' : '';
+        const id = `checkbox-${block.id}`;
         let content = `
           <div class="flex items-start mb-2">
-            <input type="checkbox" ${checked} class="mt-1 mr-2" disabled>
+            <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
             <div class="${value.checked ? 'line-through text-gray-500' : ''}">${renderRichText(value.rich_text)}</div>
           </div>
         `;
@@ -327,7 +334,7 @@ async function renderBlock(block) {
           const childrenHtml = await renderBlocksInternal(value.children);
           content = `<div class="mb-4">
             <div class="flex items-start">
-              <input type="checkbox" ${checked} class="mt-1 mr-2" disabled>
+              <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
               <div class="${value.checked ? 'line-through text-gray-500' : ''}">${renderRichText(value.rich_text)}</div>
             </div>
             <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml.join('')}</div>
@@ -348,9 +355,7 @@ async function renderBlock(block) {
       }
 
       case 'equation': {
-        return `<div class="py-2 px-4 bg-gray-50 overflow-x-auto mb-4">
-          <span class="font-mono">${value.expression}</span>
-        </div>`;
+        return renderEquation(value.expression);
       }
 
       case 'video': {
@@ -381,6 +386,19 @@ async function renderBlock(block) {
         </div>`;
       }
 
+      case 'table_of_contents': {
+        return `<div class="mb-4 p-4 border-l-4 border-blue-400 bg-blue-50 text-sm text-gray-700 rounded">[Table of Contents]</div>`;
+      }
+
+      case 'column_list': {
+        if (!block.children || block.children.length === 0) return '';
+        const columnHtml = await Promise.all(block.children.map(async col => {
+          const childrenHtml = await renderBlocksInternal(col.children || []);
+          return `<div class="flex-1 min-w-[200px] px-2">${childrenHtml.join('')}</div>`;
+        }));
+        return `<div class="flex flex-wrap gap-4 mb-4">${columnHtml.join('')}</div>`;
+      }
+
       // 處理空白區塊 - 這是為了兼容可能的其他空白區塊類型
       case 'unsupported':
         return `<div class="h-6"></div>`;
@@ -389,9 +407,9 @@ async function renderBlock(block) {
         return `<div class="text-sm text-gray-400 mb-2">[Unsupported block: ${type}]</div>`;
     }
   } catch (error) {
-  console.error(`Error rendering block (${block?.type}):`, error);
-  return renderErrorBlock(block?.type, error.message);
-}
+    console.error(`Error rendering block (${block?.type}):`, error);
+    return renderErrorBlock(block?.type, error.message);
+  }
 }
 
 async function renderBlocksInternal(blocks) {
