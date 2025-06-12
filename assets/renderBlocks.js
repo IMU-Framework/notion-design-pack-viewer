@@ -1,4 +1,4 @@
-// renderBlocks.js - 整合版本：修正 equation 和 column 渲染
+// renderBlocks.js - 修正 equation 渲染問題
 
 function renderErrorBlock(type, errorMessage = '') {
   return `<div class="p-2 border border-red-300 bg-red-50 text-red-700 rounded mb-4">
@@ -6,50 +6,82 @@ function renderErrorBlock(type, errorMessage = '') {
   </div>`;
 }
 
-// 初始化 MathJax
-function initMathJax() {
-  if (window.MathJax) {
-    return Promise.resolve();
+// 初始化 KaTeX
+function initKaTeX() {
+  // 檢查是否已經載入 KaTeX
+  if (document.querySelector('script[src*="katex"]')) {
+    return;
   }
+  
+  // 添加 KaTeX CSS
+  const katexCSS = document.createElement('link');
+  katexCSS.rel = 'stylesheet';
+  katexCSS.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css';
+  katexCSS.integrity = 'sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn';
+  katexCSS.crossOrigin = 'anonymous';
+  document.head.appendChild(katexCSS);
+  
+  // 添加 KaTeX JS
+  const katexScript = document.createElement('script');
+  katexScript.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js';
+  katexScript.integrity = 'sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx';
+  katexScript.crossOrigin = 'anonymous';
+  document.head.appendChild(katexScript);
+  
+  // 添加 KaTeX 自動渲染擴展
+  const autoRenderScript = document.createElement('script');
+  autoRenderScript.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js';
+  autoRenderScript.integrity = 'sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05';
+  autoRenderScript.crossOrigin = 'anonymous';
+  autoRenderScript.onload = function() {
+    // 等待 KaTeX 主腳本載入完成
+    if (window.katex) {
+      renderMathInElement();
+    } else {
+      katexScript.onload = renderMathInElement;
+    }
+  };
+  document.head.appendChild(autoRenderScript);
+}
 
-  return new Promise((resolve) => {
-    // 創建 MathJax 配置
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']]
-      },
-      svg: {
-        fontCache: 'global'
-      },
-      startup: {
-        pageReady: () => {
-          resolve();
-        }
-      }
-    };
-
-    // 載入 MathJax 腳本
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
-    script.async = true;
-    document.head.appendChild(script);
-  });
+// 渲染頁面中的所有數學公式
+function renderMathInElement() {
+  if (window.renderMathInElement) {
+    window.renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false},
+        {left: '\\(', right: '\\)', display: false},
+        {left: '\\[', right: '\\]', display: true}
+      ],
+      throwOnError: false
+    });
+  }
 }
 
 window.renderBlocks = async function(blocks) {
-  // 初始化 MathJax
-  await initMathJax();
+  // 初始化 KaTeX
+  initKaTeX();
+  
   const result = await renderBlocksInternal(blocks);
   
-  // 如果頁面包含數學公式，處理渲染
-  if (document.querySelector('.math-inline')) {
-    if (window.MathJax && window.MathJax.typesetPromise) {
-      await window.MathJax.typesetPromise();
+  // 確保在所有區塊渲染完成後再次嘗試渲染數學公式
+  setTimeout(() => {
+    if (window.renderMathInElement) {
+      renderMathInElement();
     }
-  }
+  }, 100);
   
   return result;
 };
+
+// 支援 TeX 風格方程式
+function renderEquation(expression) {
+  // 使用 KaTeX 格式，雙美元符號表示顯示模式
+  return `<div class="mb-4 py-2 px-4 bg-gray-50 overflow-x-auto">
+    <div class="equation">$$${expression}$$</div>
+  </div>`;
+}
 
 function renderRichText(richTextArray) {
   if (!richTextArray || richTextArray.length === 0) return '';
