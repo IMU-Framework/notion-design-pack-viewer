@@ -1,28 +1,13 @@
 ```
-2025.06.12
 notion-design-pack-viewer/
-├── index.html             # 主入口頁面，包含側邊欄與主要內容 iframe viewer
-├── viewer.html            # 統一的 Notion 頁面呈現介面（支援 mode=api 或 mode=embed）
+├── index.html             # 主入口，包含 sidebar（來自 Notion Database）+ viewer iframe 載入 page_view 或 db_view
+├── page_view.html         # 單一 Notion Page 頁面呈現，根據 pageId 呼叫 API 並使用 renderBlocks.js 呈現
+├── db_view.html           # 資料庫頁面，以 iframe 嵌入 Notion 網址（適合直接顯示原生 Notion Database）
 ├── api/
-│   ├── notion.js          # 從 Notion Database 中取得頁面清單與欄位（包含分群、icon、active 等）
-│   └── page.js            # 根據 pageId 抓取 Notion Block 並含子階層回傳（max depth 3）
+│   ├── notion.js          # 從 Notion Database 抓取頁面清單與分類資訊（含 group/title/icon...）
+│   └── page.js            # 根據 pageId 抓取 Notion block 結構（含子層）並轉為前端可用格式
 ├── assets/
-│   └── renderBlocks.js    # 前端渲染引擎，將 Notion Block 陣列轉為 Tailwind 美化後的 HTML
-└── package.json           # 專案基本設定與相依套件（目前使用 @notionhq/client）
-
-```
-
-```
-2025.06.11
-notion-design-pack-viewer/
-├── package.json
-├── index.html             # 主入口 + sidebar + default viewer
-├── page_view.html         # 單一 Notion Page 顯示模式
-├── db_view.html           # 資料庫（例如分組清單或表格）顯示模式
-├── api/
-│    ├── notion.js
-│    └── page.js
-└── assets/
-     └── renderBlocks.js
+│   └── renderBlocks.js    # 前端用於將 Notion Block 陣列轉換為 HTML 的渲染引擎，支援段落、列表、標題、圖片、code block 等格式
+├── package.json           # Node.js 依賴（@notionhq/client）與基本資訊
 
 ``` 
