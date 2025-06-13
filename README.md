@@ -7,6 +7,8 @@ notion-design-pack-viewer/
 │   ├── vite.config.js       # Vite 編譯器主設定
 │   ├── tailwind.config.js   # Tailwind 樣式設定
 │   └── postcss.config.js    # PostCSS 插件設定
+├── src/
+│   └── style.css            # Tailwind 的引入點及新增樣式入口
 ├── api/
 │   ├── notion.js            # 從 Notion Database 抓取頁面清單與分類資訊（含 group/title/icon...）
 │   ├── page.js              # 根據 pageId 抓取 Notion block 結構（含子層）並轉為前端可用格式
