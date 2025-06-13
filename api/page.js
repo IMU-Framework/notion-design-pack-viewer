@@ -2,9 +2,9 @@ import { Client } from "@notionhq/client";
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
-// ✅ 記憶體快取區：key = pageId, value = { blocks, timestamp }
-const pageCache = new Map();
-const cacheTTL = 5 * 60 * 1000; // 快取有效 5 分鐘
+// ✅ 記憶體快取區
+const dbCache = new Map();
+const cacheTTL = 60 * 60 * 1000; // 1小時快取
 
 // 遞迴抓取所有 blocks（含 children）
 async function getBlockChildren(blockId, depth = 0, maxDepth = 3) {
