@@ -3,7 +3,7 @@ import { Client } from "@notionhq/client";
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
 // ✅ 記憶體快取區
-const dbCache = new Map();
+const pageCache = new Map();
 const cacheTTL = 60 * 60 * 1000; // 1小時快取
 
 // 遞迴抓取所有 blocks（含 children）
