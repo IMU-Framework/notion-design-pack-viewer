@@ -2,9 +2,9 @@ import { Client } from "@notionhq/client";
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
-// 快取結構：Map<pageId, { data, timestamp }>
+// ✅ 記憶體快取區
 const dbCache = new Map();
-const cacheTTL = 5 * 60 * 1000; // 5分鐘
+const cacheTTL = 60 * 60 * 1000; // 1小時快取
 
 export default async function handler(req, res) {
   const { pageId } = req.query;
