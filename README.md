@@ -5,7 +5,8 @@ notion-design-pack-viewer/
 ├── db_view.html           # 資料庫頁面，以 iframe 嵌入 Notion 網址（適合直接顯示原生 Notion Database）
 ├── api/
 │   ├── notion.js          # 從 Notion Database 抓取頁面清單與分類資訊（含 group/title/icon...）
-│   └── page.js            # 根據 pageId 抓取 Notion block 結構（含子層）並轉為前端可用格式
+│   ├── page.js            # 根據 pageId 抓取 Notion block 結構（含子層）並轉為前端可用格式
+│   └── page_with_db.js    # 根據 pageId 抓取頁面內的 Child Database資訊
 ├── assets/
 │   └── renderBlocks.js    # 前端用於將 Notion Block 陣列轉換為 HTML 的渲染引擎，支援段落、列表、標題、圖片、code block 等格式
 └── package.json           # Node.js 依賴（@notionhq/client）與基本資訊
