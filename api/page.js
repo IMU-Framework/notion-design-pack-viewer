@@ -21,10 +21,7 @@
 
   <div class="flex-1 flex flex-col">
     <header class="bg-white px-6 py-3 shadow-none">
-      <nav class="flex justify-between text-sm text-gray-500" id="breadcrumb-bar">
-        <div id="breadcrumb-nav" class="flex space-x-2"></div>
-        <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap"></div>
-      </nav>
+      <nav class="flex text-sm text-gray-500 space-x-2" id="breadcrumb-nav"></nav>
     </header>
     <main class="flex-1 overflow-auto bg-white">
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
@@ -147,7 +144,6 @@
                 ? `db_view.html?pageId=${page.Page_ID}`
                 : `page_view.html?pageId=${page.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-              updateLastEdited(page.Page_ID); // ✅ 新增LastEdited
             }
           };
 
@@ -170,7 +166,6 @@
                 ? `db_view.html?pageId=${item.Page_ID}`
                 : `page_view.html?pageId=${item.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-              updateLastEdited(item.Page_ID); // ✅ 新增LastEdited
             };
             li.appendChild(a);
             ul.appendChild(li);
@@ -196,18 +191,6 @@
       } catch (err) {
         document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
         console.error(err);
-      }
-    }
-
-    // ✅ 顯示 last edited 日期
-    async function updateLastEdited(pageId) {
-      const res = await fetch(`/api/page.js?pageId=${pageId}`);
-      const data = await res.json();
-      if (data.lastEdited) {
-        const date = new Date(data.lastEdited).toISOString().split("T")[0];
-        document.getElementById("last-edited-time").textContent = `Last edited: ${date}`;
-      } else {
-        document.getElementById("last-edited-time").textContent = "";
       }
     }
 
