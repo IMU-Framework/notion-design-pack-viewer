@@ -225,8 +225,8 @@ async function renderBlock(block) {
       case 'code': {
         const lang = value.language || 'plain';
         const text = value.rich_text.map(rt => rt.plain_text).join('\n');
-        return `<div class="mb-4"><div class="bg-blue-100 text-blue-600 px-4 py-1 text-sm rounded-t">${lang}</div>` +
-          `<pre class="bg-blue-600 text-white p-4 rounded-b overflow-x-auto"><code>${text}</code></pre></div>`;
+        return `<div class="mb-4"><div class="bg-blue-800 text-blue-200 px-4 py-1 text-sm rounded-t">${lang}</div>` +
+          `<pre class="bg-gray-900 text-white p-4 rounded-b overflow-x-auto"><code>${text}</code></pre></div>`;
       }
 
       case 'image': {
