@@ -147,8 +147,7 @@
                 ? `db_view.html?pageId=${page.Page_ID}`
                 : `page_view.html?pageId=${page.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-              if (window.lastEditedTimer) clearTimeout(window.lastEditedTimer);
-              window.lastEditedTimer = setTimeout(() => updateLastEdited(item.Page_ID), 500); // ✅ 新增LastEdited
+              updateLastEdited(page.Page_ID); // ✅ 新增LastEdited
             }
           };
 
@@ -171,7 +170,7 @@
                 ? `db_view.html?pageId=${item.Page_ID}`
                 : `page_view.html?pageId=${item.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-              updateLastEdited(item.Page_ID); // ✅ 新增LastEdited
+              setTimeout(() => updateLastEdited(item.Page_ID), 500); // ✅ 新增LastEdited
             };
             li.appendChild(a);
             ul.appendChild(li);
