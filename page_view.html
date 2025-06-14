@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-white text-gray-800">
-  <main class="max-w-4xl mx-auto px-6">
+  <main class="max-w-4xl mx-auto px-6 py-6">
     <article id="notion-content" class="space-y-4">
       <div class="animate-pulse">
         <div class="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
@@ -18,11 +18,9 @@
   </main>
 
   <script>
-    // 取得 URL 參數中的 pageId
     const urlParams = new URLSearchParams(window.location.search);
     const pageId = urlParams.get('pageId');
-    
-    // 確認 pageId 存在且不是 "null" 字串
+
     if (!pageId || pageId === "null" || pageId === "undefined") {
       document.getElementById('notion-content').innerHTML = `
         <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
@@ -35,7 +33,6 @@
         </div>
       `;
     } else {
-      // 載入並渲染頁面內容
       async function loadPageContent() {
         try {
           const response = await fetch(`/api/page?pageId=${pageId}`);
@@ -43,20 +40,18 @@
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || `伺服器錯誤 (${response.status})`);
           }
-          
+
           const data = await response.json();
           if (!data.blocks || !Array.isArray(data.blocks)) {
             throw new Error('返回的資料格式不正確');
           }
-          
+
           const contentElement = document.getElementById('notion-content');
-          
-          // 使用 renderBlocks 函數渲染內容
+
           if (window.renderBlocks) {
             const htmlContent = await window.renderBlocks(data.blocks);
             contentElement.innerHTML = htmlContent.join('');
-            
-            // 如果沒有內容，顯示提示
+
             if (!htmlContent.length) {
               contentElement.innerHTML += `
                 <div class="text-gray-500 p-4 border border-gray-300 rounded bg-gray-50 mt-4">
@@ -65,7 +60,8 @@
               `;
             }
           } else {
-            contentElement.innerHTML = '<div class="text-red-600 p-4 border border-red-300 rounded">⚠️ renderBlocks 函數未載入</div>';
+            contentElement.innerHTML = `
+              <div class="text-red-600 p-4 border border-red-300 rounded">⚠️ renderBlocks 函數未載入</div>`;
           }
         } catch (error) {
           console.error('載入頁面失敗:', error);
@@ -82,9 +78,7 @@
         }
       }
 
-      // 頁面載入後執行
       window.addEventListener('DOMContentLoaded', () => {
-        // 確保 renderBlocks.js 已載入
         if (typeof window.renderBlocks === 'undefined') {
           const script = document.createElement('script');
           script.src = '/assets/renderBlocks.js';
@@ -92,8 +86,7 @@
           script.onerror = () => {
             document.getElementById('notion-content').innerHTML = `
               <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
-                <h3 class="font-bold text-lg mb-2">⚠️ 腳本載入失敗</h3>
-                <p>無法載入 renderBlocks.js</p>
+                <h3 class="font-bold text-lg mb-2">⚠️ 無法載入 renderBlocks.js</h3>
                 <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                   重新嘗試
                 </button>

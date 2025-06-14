@@ -2,98 +2,98 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Jubo台北總部辦公室設計手冊</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .active-nav {
-      transition: background-color 0.2s, color 0.2s;
-      background-color: #e0f2fe;
-      color: #1e40af;
-    }
-  </style>
 </head>
 <body class="h-screen flex bg-gray-100">
   <div class="flex flex-col w-64 bg-white border-r">
-    <div id="nav-header" class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b cursor-pointer">Jubo HQ</div>
+    <div class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b cursor-pointer" onclick="window.location.href='page_view.html?pageId=20fbce0687108096b766c28d576bbdd2'">IMU 導覽</div>
     <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
 
   <div class="flex-1 flex flex-col">
-    <header class="bg-white px-6 py-3 shadow-none">
-      <nav class="flex text-sm text-gray-500 space-x-2" id="breadcrumb-nav"></nav>
+    <header id="breadcrumb-header" class="bg-white px-6 py-3 shadow flex justify-between items-center">
+      <nav class="flex text-sm text-gray-500 space-x-2">
+        <a href="#" class="hover:underline">首頁</a>
+        <span>/</span>
+        <span id="breadcrumb-current" class="text-gray-700 font-semibold">歡迎</span>
+      </nav>
+      <div class="flex items-center space-x-3 text-sm text-gray-400">
+        <span id="last-updated" class="hidden sm:inline"></span>
+        <button
+          id="refresh-button"
+          title="Refresh"
+          class="text-gray-500 hover:text-blue-600 focus:outline-none"
+          onclick="refreshCurrentPage()">
+          🔄
+        </button>
+      </div>
     </header>
-    <main class="flex-1 overflow-auto bg-white">
-      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
+
+    <main class="flex-1 overflow-auto">
+      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full">
+        <iframe src="page_view.html?pageId=20fbce0687108096b766c28d576bbdd2" class="w-full h-full border-none"></iframe>
+      </div>
     </main>
   </div>
 
   <script>
-    const NOTION_DB_URL = "/api/notion.js";
+    let currentPageId = null;
+
+    function updateBreadcrumb(path) {
+      const breadcrumb = document.getElementById('breadcrumb-current');
+      breadcrumb.innerHTML = path
+        .map((p, idx) =>
+          idx === path.length - 1
+            ? `<span class="text-gray-700 font-semibold">${p}</span>`
+            : `<span class="text-gray-500">${p}</span>`
+        )
+        .join('<span class="text-gray-400"> / </span>');
+    }
+
+    function clearOutline() {
+      document.querySelectorAll('.outline-nav').forEach(o => o.remove());
+    }
+
+    function refreshCurrentPage() {
+      if (!currentPageId) return;
+      const viewer = document.getElementById('notion-viewer');
+      if (viewer) {
+        const iframe = viewer.querySelector('iframe');
+        const url = new URL(iframe.src);
+        url.searchParams.set('forceRefresh', 'true');
+        iframe.src = url.toString();
+      }
+    }
 
     async function fetchSidebarData() {
-      const res = await fetch(NOTION_DB_URL);
+      const res = await fetch("/api/notion.js");
       if (!res.ok) throw new Error("載入失敗");
       return res.json();
     }
 
-    function updateBreadcrumb(path) {
-      const breadcrumb = document.getElementById("breadcrumb-nav");
-      breadcrumb.innerHTML = "";
-      path.forEach((p, idx) => {
-        if (idx > 0) {
-          const separator = document.createElement("span");
-          separator.textContent = "/";
-          separator.className = "text-gray-400";
-          breadcrumb.appendChild(separator);
-        }
-        const span = document.createElement("span");
-        span.textContent = p;
-        span.className = idx === path.length - 1 ? "text-gray-700 font-semibold" : "text-gray-500";
-        breadcrumb.appendChild(span);
-      });
-    }
-
-    function clearOutline() {
-      document.querySelectorAll(".outline-nav").forEach(o => o.remove());
-    }
-
-    function renderIcon(icon, title) {
-      if (!icon) return title;
-      return icon.startsWith("http")
-        ? `<img src="${icon}" class="w-4 h-4 mr-2 inline" />${title}`
-        : `<span class="mr-2">${icon}</span>${title}`;
-    }
-
     async function initSidebar() {
-      const sidebar = document.getElementById("sidebar-nav");
-      const viewer = document.getElementById("notion-viewer");
-      sidebar.innerHTML = "";
-
+      const sidebar = document.getElementById('sidebar-nav');
+      sidebar.innerHTML = '';
       try {
         const { pages } = await fetchSidebarData();
-        const activePages = pages.filter((p) => p.Active);
+        const activePages = pages.filter(p => p.Active);
+        const homePages = activePages.filter(p => p.Title === 'Home');
+        const homePage = homePages.sort((a, b) => new Date(a.CreatedTime) - new Date(b.CreatedTime))[0];
 
-        const homeCandidates = activePages.filter((p) => p.Title === "Home");
-        const homePage = homeCandidates.sort((a, b) => new Date(a.CreatedTime) - new Date(b.CreatedTime))[0];
-        const nonHomePages = activePages.filter((p) => p.Title !== "Home");
-
+        const nonHomePages = activePages.filter(p => p.Title !== 'Home');
         const groupMap = {};
         const parentMeta = [];
 
-        nonHomePages.forEach((page) => {
+        nonHomePages.forEach(page => {
           const group = page.Group?.trim();
           if (group) {
             if (!groupMap[group]) groupMap[group] = [];
             groupMap[group].push(page);
           } else {
             groupMap[page.Title] = [];
-            parentMeta.push({
-              title: page.Title,
-              Order: page.Order ?? null,
-              CreatedTime: page.CreatedTime,
-              Icon: page.Icon || null,
-            });
+            parentMeta.push({ title: page.Title, Order: page.Order ?? null, CreatedTime: page.CreatedTime });
           }
         });
 
@@ -113,59 +113,37 @@
           return new Date(a.CreatedTime) - new Date(b.CreatedTime);
         });
 
-        // ✅ Render sidebar groups (with icon & clickable summary)
-        parentMeta.forEach(({ title: groupTitle, Icon: groupIcon }) => {
-          const details = document.createElement("details");
-          details.classList.add("group");
-
-          const summary = document.createElement("summary");
-          summary.className = "flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg";
-
-          const iconHTML = groupIcon
-            ? (groupIcon.startsWith("http")
-                ? `<img src="${groupIcon}" class="w-4 h-4 mr-2 inline" />`
-                : `<span class="mr-2">${groupIcon}</span>`)
-            : "";
-
-          summary.innerHTML = `
-            <span class="flex items-center">${iconHTML}${groupTitle}</span>
+        parentMeta.forEach(({ title: groupTitle }) => {
+          const details = document.createElement('details');
+          details.classList.add('group');
+          const summary = document.createElement('summary');
+          summary.className = 'flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg';
+          summary.innerHTML = `<span class="flex items-center">${groupTitle}</span>
             <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
             </svg>`;
 
-          summary.onclick = () => {
-            clearOutline();
-            document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
-            summary.classList.add("active-nav");
-            updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle]);
-            const page = pages.find(p => p.Title === groupTitle);
-            if (page) {
-              const url = page.View_Mode?.toLowerCase() === "db"
-                ? `db_view.html?pageId=${page.Page_ID}`
-                : `page_view.html?pageId=${page.Page_ID}`;
-              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-            }
-          };
+          const ul = document.createElement('ul');
+          ul.className = 'ml-8 mt-2 space-y-1 text-base';
 
-          const ul = document.createElement("ul");
-          ul.className = "ml-8 mt-2 space-y-1 text-base";
-
-          groupMap[groupTitle].forEach((item) => {
-            const li = document.createElement("li");
-            const a = document.createElement("a");
-            a.innerHTML = renderIcon(item.Icon, item.Title);
-            a.className =
-              "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
-            a.onclick = (e) => {
+          groupMap[groupTitle].forEach(item => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            const isEmoji = /^[\u{1F300}-\u{1FAFF}]/u.test(item.Icon);
+            const iconHtml = item.Icon ? (isEmoji ? `<span class="mr-2">${item.Icon}</span>` : `<img src="${item.Icon}" class="w-4 h-4 mr-2 inline-block"/>`) : '';
+            a.innerHTML = `${iconHtml}${item.Title}`;
+            a.className = 'flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav';
+            a.onclick = e => {
               e.stopPropagation();
               clearOutline();
-              document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
-              a.classList.add("active-nav");
-              updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
-              const url = item.View_Mode?.toLowerCase() === "db"
+              document.querySelectorAll('.active-nav').forEach(link => link.classList.remove('active'));
+              a.classList.add('active');
+              updateBreadcrumb(['首頁', groupTitle, item.Title]);
+              currentPageId = item.Page_ID;
+              const url = item.View_Mode?.toLowerCase() === 'db'
                 ? `db_view.html?pageId=${item.Page_ID}`
                 : `page_view.html?pageId=${item.Page_ID}`;
-              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+              document.getElementById('notion-viewer').innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
             };
             li.appendChild(a);
             ul.appendChild(li);
@@ -175,21 +153,8 @@
           details.appendChild(ul);
           sidebar.appendChild(details);
         });
-
-        // ✅ 點擊 logo 回首頁
-        if (homePage) {
-          document.getElementById("nav-header").onclick = () => {
-            document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
-            updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title]);
-            const url = homePage.View_Mode === "db"
-              ? `db_view.html?pageId=${homePage.Page_ID}`
-              : `page_view.html?pageId=${homePage.Page_ID}`;
-            viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-          };
-          document.getElementById("nav-header").click(); // 預設載入首頁
-        }
       } catch (err) {
-        document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
+        sidebar.innerHTML = '❌ 無法載入資料';
         console.error(err);
       }
     }
