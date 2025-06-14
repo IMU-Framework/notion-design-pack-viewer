@@ -68,6 +68,18 @@
         : `<span class="mr-2">${icon}</span>${title}`;
     }
 
+    // ✅ 顯示 last edited 日期
+    async function updateLastEdited(pageId) {
+      const res = await fetch(`/api/page.js?pageId=${pageId}`);
+      const data = await res.json();
+      if (data.lastEdited) {
+        const date = new Date(data.lastEdited).toISOString().split("T")[0];
+        document.getElementById("last-edited-time").textContent = `Last edited: ${date}`;
+      } else {
+        document.getElementById("last-edited-time").textContent = "";
+      }
+    }
+
     async function initSidebar() {
       const sidebar = document.getElementById("sidebar-nav");
       const viewer = document.getElementById("notion-viewer");
