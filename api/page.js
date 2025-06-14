@@ -46,7 +46,11 @@ export default async function handler(req, res) {
   // ✅ 嘗試讀取快取
   const cached = pageCache.get(pageId);
   if (cached && Date.now() - cached.timestamp < cacheTTL) {
-    return res.status(200).json({ blocks: cached.blocks, fromCache: true });
+    return res.status(200).json({
+      blocks: cached.blocks, 
+      lastEdited: cached.lastEdited, // ✅ 加上Last Edited,
+      fromCache: true 
+    });
   }
 
   try {
