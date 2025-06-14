@@ -1,200 +1,65 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jubo台北總部辦公室設計手冊</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .active-nav {
-      transition: background-color 0.2s, color 0.2s;
-      background-color: #e0f2fe;
-      color: #1e40af;
-    }
-  </style>
-</head>
-<body class="h-screen flex bg-gray-100">
-  <div class="flex flex-col w-64 bg-white border-r">
-    <div id="nav-header" class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b cursor-pointer">Jubo HQ</div>
-    <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
-  </div>
+import { Client } from "@notionhq/client";
 
-  <div class="flex-1 flex flex-col">
-    <header class="bg-white px-6 py-3 shadow-none">
-      <nav class="flex text-sm text-gray-500 space-x-2" id="breadcrumb-nav"></nav>
-    </header>
-    <main class="flex-1 overflow-auto bg-white">
-      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
-    </main>
-  </div>
+const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
-  <script>
-    const NOTION_DB_URL = "/api/notion.js";
+// ✅ 記憶體快取區
+const pageCache = new Map();
+const cacheTTL = 60 * 60 * 1000; // 1小時快取
 
-    async function fetchSidebarData() {
-      const res = await fetch(NOTION_DB_URL);
-      if (!res.ok) throw new Error("載入失敗");
-      return res.json();
-    }
+// 遞迴抓取所有 blocks（含 children）
+async function getBlockChildren(blockId, depth = 0, maxDepth = 3) {
+  const blocks = [];
+  let cursor;
 
-    function updateBreadcrumb(path) {
-      const breadcrumb = document.getElementById("breadcrumb-nav");
-      breadcrumb.innerHTML = "";
-      path.forEach((p, idx) => {
-        if (idx > 0) {
-          const separator = document.createElement("span");
-          separator.textContent = "/";
-          separator.className = "text-gray-400";
-          breadcrumb.appendChild(separator);
+  do {
+    const response = await notion.blocks.children.list({
+      block_id: blockId,
+      start_cursor: cursor,
+      page_size: 50,
+    });
+    blocks.push(...response.results);
+    cursor = response.has_more ? response.next_cursor : null;
+  } while (cursor);
+
+  // 遞迴抓取子層（僅對 has_children 的 block 做遞迴）
+  if (depth < maxDepth) {
+    for (const block of blocks) {
+      if (block.has_children) {
+        const childBlocks = await getBlockChildren(block.id, depth + 1, maxDepth);
+        if (block[block.type]) {
+          block[block.type].children = childBlocks;
         }
-        const span = document.createElement("span");
-        span.textContent = p;
-        span.className = idx === path.length - 1 ? "text-gray-700 font-semibold" : "text-gray-500";
-        breadcrumb.appendChild(span);
-      });
-    }
-
-    function clearOutline() {
-      document.querySelectorAll(".outline-nav").forEach(o => o.remove());
-    }
-
-    function renderIcon(icon, title) {
-      if (!icon) return title;
-      return icon.startsWith("http")
-        ? `<img src="${icon}" class="w-4 h-4 mr-2 inline" />${title}`
-        : `<span class="mr-2">${icon}</span>${title}`;
-    }
-
-    async function initSidebar() {
-      const sidebar = document.getElementById("sidebar-nav");
-      const viewer = document.getElementById("notion-viewer");
-      sidebar.innerHTML = "";
-
-      try {
-        const { pages } = await fetchSidebarData();
-        const activePages = pages.filter((p) => p.Active);
-
-        const homeCandidates = activePages.filter((p) => p.Title === "Home");
-        const homePage = homeCandidates.sort((a, b) => new Date(a.CreatedTime) - new Date(b.CreatedTime))[0];
-        const nonHomePages = activePages.filter((p) => p.Title !== "Home");
-
-        const groupMap = {};
-        const parentMeta = [];
-
-        nonHomePages.forEach((page) => {
-          const group = page.Group?.trim();
-          if (group) {
-            if (!groupMap[group]) groupMap[group] = [];
-            groupMap[group].push(page);
-          } else {
-            groupMap[page.Title] = [];
-            parentMeta.push({
-              title: page.Title,
-              Order: page.Order ?? null,
-              CreatedTime: page.CreatedTime,
-              Icon: page.Icon || null,
-            });
-          }
-        });
-
-        for (const group in groupMap) {
-          groupMap[group].sort((a, b) => {
-            if (a.Order != null && b.Order != null) return a.Order - b.Order;
-            if (a.Order != null) return -1;
-            if (b.Order != null) return 1;
-            return new Date(a.CreatedTime) - new Date(b.CreatedTime);
-          });
-        }
-
-        parentMeta.sort((a, b) => {
-          if (a.Order != null && b.Order != null) return a.Order - b.Order;
-          if (a.Order != null) return -1;
-          if (b.Order != null) return 1;
-          return new Date(a.CreatedTime) - new Date(b.CreatedTime);
-        });
-
-        // ✅ Render sidebar groups (with icon & clickable summary)
-        parentMeta.forEach(({ title: groupTitle, Icon: groupIcon }) => {
-          const details = document.createElement("details");
-          details.classList.add("group");
-
-          const summary = document.createElement("summary");
-          summary.className = "flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg";
-
-          const iconHTML = groupIcon
-            ? (groupIcon.startsWith("http")
-                ? `<img src="${groupIcon}" class="w-4 h-4 mr-2 inline" />`
-                : `<span class="mr-2">${groupIcon}</span>`)
-            : "";
-
-          summary.innerHTML = `
-            <span class="flex items-center">${iconHTML}${groupTitle}</span>
-            <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>`;
-
-          summary.onclick = () => {
-            clearOutline();
-            document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
-            summary.classList.add("active-nav");
-            updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle]);
-            const page = pages.find(p => p.Title === groupTitle);
-            if (page) {
-              const url = page.View_Mode?.toLowerCase() === "db"
-                ? `db_view.html?pageId=${page.Page_ID}`
-                : `page_view.html?pageId=${page.Page_ID}`;
-              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-            }
-          };
-
-          const ul = document.createElement("ul");
-          ul.className = "ml-8 mt-2 space-y-1 text-base";
-
-          groupMap[groupTitle].forEach((item) => {
-            const li = document.createElement("li");
-            const a = document.createElement("a");
-            a.innerHTML = renderIcon(item.Icon, item.Title);
-            a.className =
-              "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
-            a.onclick = (e) => {
-              e.stopPropagation();
-              clearOutline();
-              document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
-              a.classList.add("active-nav");
-              updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
-              const url = item.View_Mode?.toLowerCase() === "db"
-                ? `db_view.html?pageId=${item.Page_ID}`
-                : `page_view.html?pageId=${item.Page_ID}`;
-              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-            };
-            li.appendChild(a);
-            ul.appendChild(li);
-          });
-
-          details.appendChild(summary);
-          details.appendChild(ul);
-          sidebar.appendChild(details);
-        });
-
-        // ✅ 點擊 logo 回首頁
-        if (homePage) {
-          document.getElementById("nav-header").onclick = () => {
-            document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
-            updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title]);
-            const url = homePage.View_Mode === "db"
-              ? `db_view.html?pageId=${homePage.Page_ID}`
-              : `page_view.html?pageId=${homePage.Page_ID}`;
-            viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-          };
-          document.getElementById("nav-header").click(); // 預設載入首頁
-        }
-      } catch (err) {
-        document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
-        console.error(err);
       }
     }
+  }
 
-    initSidebar();
-  </script>
-</body>
-</html>
+  return blocks;
+}
+
+export default async function handler(req, res) {
+  const { pageId } = req.query;
+
+  if (!pageId) {
+    return res.status(400).json({ error: "Missing pageId" });
+  }
+
+  // ✅ 嘗試讀取快取
+  const cached = pageCache.get(pageId);
+  if (cached && Date.now() - cached.timestamp < cacheTTL) {
+    return res.status(200).json({ blocks: cached.blocks, fromCache: true });
+  }
+
+  try {
+    const pageMeta = await notion.pages.retrieve({ page_id: pageId });
+    const lastEdited = pageMeta.last_edited_time;
+
+    const blocks = await getBlockChildren(pageId);
+    pageCache.set(pageId, { blocks, lastEdited, timestamp: Date.now() }); // 更新快取
+
+    res.status(200).json({ blocks, lastEdited });
+  } catch (err) {
+    console.error("❌ Notion API error in /api/page.js:", err.message);
+    res.status(500).json({ error: "Failed to fetch Notion blocks" });
+  }
+
+}
