@@ -21,7 +21,12 @@
 
   <div class="flex-1 flex flex-col">
     <header class="bg-white px-6 py-3 shadow-none">
-      <nav class="flex text-sm text-gray-500 space-x-2" id="breadcrumb-nav"></nav>
+      
+    <nav id="breadcrumb-bar" class="flex justify-between items-center text-sm text-gray-500">
+      <div id="breadcrumb-nav" class="flex space-x-2"></div>
+      <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap"></div>
+    </nav>
+    
     </header>
     <main class="flex-1 overflow-auto bg-white">
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
@@ -138,6 +143,7 @@
             document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
             summary.classList.add("active-nav");
             updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle]);
+            updateLastEdited(page.Page_ID);
             const page = pages.find(p => p.Title === groupTitle);
             if (page) {
               const url = page.View_Mode?.toLowerCase() === "db"
@@ -162,6 +168,7 @@
               document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
               a.classList.add("active-nav");
               updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
+              updateLastEdited(item.Page_ID);
               const url = item.View_Mode?.toLowerCase() === "db"
                 ? `db_view.html?pageId=${item.Page_ID}`
                 : `page_view.html?pageId=${item.Page_ID}`;
@@ -193,6 +200,20 @@
         console.error(err);
       }
     }
+
+    
+    // ✅ 顯示 last edited 日期
+    async function updateLastEdited(pageId) {
+      const res = await fetch(`/api/page.js?pageId=${pageId}`);
+      const data = await res.json();
+      if (data.lastEdited) {
+        const date = new Date(data.lastEdited).toISOString().split("T")[0];
+        document.getElementById("last-edited-time").textContent = `Last edited: ${date}`;
+      } else {
+        document.getElementById("last-edited-time").textContent = "";
+      }
+    }
+
 
     initSidebar();
   </script>
