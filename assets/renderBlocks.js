@@ -24,7 +24,7 @@ function renderRichText(richTextArray) {
     if (rt.annotations.italic) content = `<em>${content}</em>`;
     if (rt.annotations.strikethrough) content = `<s>${content}</s>`;
     if (rt.annotations.underline) content = `<u>${content}</u>`;
-    if (rt.annotations.code) content = `<code class="bg-gray-100 px-1 py-1 rounded">${content}</code>`;
+    if (rt.annotations.code) content = `<code class="bg-blue-100 text-blue-600 px-1 py-1 rounded">${content}</code>`;
     if (rt.href) content = `<a href="${rt.href}" class="text-blue-600 underline" target="_blank">${content}</a>`;
     if (styles.trim()) content = `<span class="${styles.trim()}">${content}</span>`;
     return content;
