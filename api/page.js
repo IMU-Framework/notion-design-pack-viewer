@@ -170,7 +170,7 @@
                 ? `db_view.html?pageId=${item.Page_ID}`
                 : `page_view.html?pageId=${item.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-              setTimeout(() => updateLastEdited(item.Page_ID), 500); // ✅ 新增LastEdited
+              updateLastEdited(item.Page_ID); // ✅ 新增LastEdited
             };
             li.appendChild(a);
             ul.appendChild(li);
