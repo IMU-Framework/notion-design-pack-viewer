@@ -4,7 +4,7 @@ const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
 // ✅ 記憶體快取區
 const pageCache = new Map();
-const cacheTTL = 5 * 60 * 1000; // 5分鐘快取
+const cacheTTL = 30 * 60 * 1000; // 30分鐘快取
 
 // 遞迴抓取所有 blocks（含 children）
 async function getBlockChildren(blockId, depth = 0, maxDepth = 3) {
