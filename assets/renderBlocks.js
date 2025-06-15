@@ -68,11 +68,8 @@ const headingConfig = {
   },
   'heading_2': { 
     textClass: 'text-2xl', 
-    bg: 'bg-blue-100',
-    padding: 'p-1',
     marginTop: 'mt-9', 
     marginBottom: 'mb-3', 
-    rounded: 'rounded'
   },
   'heading_3': { 
     textClass: 'text-xl', 
