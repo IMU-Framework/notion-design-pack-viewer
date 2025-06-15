@@ -62,8 +62,13 @@
           const res = await fetch(`/api/page.js?pageId=${pageId}`);
           const data = await res.json();
           if (data.lastEdited) {
-            const date = new Date(data.lastEdited).toISOString().split("T")[0];
-            document.getElementById("last-edited-time").textContent = `Last edited: ${date}` + ' ⟳';
+            // const date = new Date(data.lastEdited).toISOString().split("T")[0];
+            // document.getElementById("last-edited-time").textContent = `Last edited: ${date}` + ' ⟳';
+            const d = new Date(data.lastEdited);
+            const dateStr = d.toLocaleDateString("sv-SE"); // "yyyy-mm-dd"
+            const timeStr = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' }); // "hh:mm" 24小時制
+            document.getElementById("last-edited-time").textContent = `Last edited: ${dateStr} ${timeStr} ⟳`;
+
           }
         } catch (err) {
           console.error("無法取得最後更新時間", err);
@@ -214,9 +219,9 @@
       }
     }
 
-    //加入「點擊 Last edited 重新載入」功能
-
     initSidebar();
+
+   //加入「點擊 Last edited 重新載入」功能
 
     document.getElementById("last-edited-time").onclick = async () => {
       const pageId = window.currentPageId;
