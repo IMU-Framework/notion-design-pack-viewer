@@ -23,7 +23,7 @@
     <header class="bg-white px-6 py-3 shadow-none">
       <nav class="flex justify-between text-sm text-gray-500" id="breadcrumb-bar">
         <div id="breadcrumb-nav" class="flex space-x-2"></div>
-        <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap"></div>
+        <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap cursor-pointer hover:text-blue-700 transition-colors"></div>
       </nav>
     </header>
     <main class="flex-1 overflow-auto bg-white">
@@ -63,7 +63,7 @@
           const data = await res.json();
           if (data.lastEdited) {
             const date = new Date(data.lastEdited).toISOString().split("T")[0];
-            document.getElementById("last-edited-time").textContent = `Last edited: ${date}`;
+            document.getElementById("last-edited-time").textContent = `Last edited: ${date}` + ' ⟳';
           }
         } catch (err) {
           console.error("無法取得最後更新時間", err);
