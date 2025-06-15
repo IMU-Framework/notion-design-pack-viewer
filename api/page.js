@@ -37,10 +37,17 @@ async function getBlockChildren(blockId, depth = 0, maxDepth = 3) {
 }
 
 export default async function handler(req, res) {
-  const { pageId } = req.query;
+  const { pageId, clear } = req.query;
 
   if (!pageId) {
     return res.status(400).json({ error: "Missing pageId" });
+  }
+
+  // ✅ 若指定清除 cache
+  if (clear === "true") {
+    pageCache.delete(pageId);
+    console.log("🧹 Cache cleared for", pageId);
+    return res.status(200).json({ cleared: true });
   }
 
   // ✅ 嘗試讀取快取
