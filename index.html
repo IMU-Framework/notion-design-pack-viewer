@@ -40,7 +40,8 @@
       return res.json();
     }
 
-    function updateBreadcrumb(path) {
+      // Breadcrumb 更新邏輯
+    async function updateBreadcrumb(path, pageId) {
       const breadcrumb = document.getElementById("breadcrumb-nav");
       breadcrumb.innerHTML = "";
       path.forEach((p, idx) => {
@@ -55,7 +56,22 @@
         span.className = idx === path.length - 1 ? "text-gray-700 font-semibold" : "text-gray-500";
         breadcrumb.appendChild(span);
       });
+
+      // 加上 Last Edited 更新邏輯
+      if (pageId) {
+        try {
+          const res = await fetch(`/api/page.js?pageId=${pageId}`);
+          const data = await res.json();
+          if (data.lastEdited) {
+            const date = new Date(data.lastEdited).toISOString().split("T")[0];
+            document.getElementById("last-edited-time").textContent = `Last edited: ${date}`;
+          }
+        } catch (err) {
+          console.error("無法取得最後更新時間", err);
+        }
+      }
     }
+       // Last Edited 更新邏輯結束
 
     function clearOutline() {
       document.querySelectorAll(".outline-nav").forEach(o => o.remove());
@@ -140,7 +156,7 @@
             clearOutline();
             document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
             summary.classList.add("active-nav");
-            updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle]);
+            updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle], page.Page_ID);
             const page = pages.find(p => p.Title === groupTitle);
             if (page) {
               const url = page.View_Mode?.toLowerCase() === "db"
@@ -164,7 +180,7 @@
               clearOutline();
               document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
               a.classList.add("active-nav");
-              updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title]);
+              updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title], item.Page_ID);
               const url = item.View_Mode?.toLowerCase() === "db"
                 ? `db_view.html?pageId=${item.Page_ID}`
                 : `page_view.html?pageId=${item.Page_ID}`;
@@ -183,7 +199,7 @@
         if (homePage) {
           document.getElementById("nav-header").onclick = () => {
             document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
-            updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title]);
+            updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title], homePage.Page_ID);
             const url = homePage.View_Mode === "db"
               ? `db_view.html?pageId=${homePage.Page_ID}`
               : `page_view.html?pageId=${homePage.Page_ID}`;
