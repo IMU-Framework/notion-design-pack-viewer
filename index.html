@@ -224,10 +224,21 @@
 
       try {
         await fetch(`/api/page.js?pageId=${pageId}&clear=true`);
+
+        // ✅ 重新觸發 iframe reload
         const iframe = document.querySelector("#notion-viewer iframe");
         if (iframe?.src) {
-          iframe.src = iframe.src; // reload iframe
+          iframe.src = iframe.src;
         }
+
+        // ✅ 再次執行 updateBreadcrumb 以更新日期
+        const breadcrumb = Array.from(document.getElementById("breadcrumb-nav").children)
+          .filter(el => el.tagName === "SPAN")
+          .map(el => el.textContent)
+          .filter(t => t !== "/");
+
+        await updateBreadcrumb(breadcrumb, pageId);
+
       } catch (err) {
         console.error("🔁 Reload failed", err);
       }
