@@ -154,7 +154,7 @@ async function renderBlock(block) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
           content = `<div class="mb-4">
             <p class="leading-relaxed">${renderRichText(value.rich_text)}</p>
-            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml}</div>
+            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-4">${childrenHtml}</div>
           </div>`;
         }
         
