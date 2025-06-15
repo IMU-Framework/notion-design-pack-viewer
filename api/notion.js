@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
         return {
           Title: title,
-          View_Mode: viewMode,  // embed 或 api
+          View_Mode: viewMode,
           Page_ID: pageId,
           Active: active,
           Group: group,
