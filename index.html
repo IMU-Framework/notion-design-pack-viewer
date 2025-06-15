@@ -62,8 +62,6 @@
           const res = await fetch(`/api/page.js?pageId=${pageId}`);
           const data = await res.json();
           if (data.lastEdited) {
-            // const date = new Date(data.lastEdited).toISOString().split("T")[0];
-            // document.getElementById("last-edited-time").textContent = `Last edited: ${date}` + ' ⟳';
             const d = new Date(data.lastEdited);
             const dateStr = d.toLocaleDateString("sv-SE"); // "yyyy-mm-dd"
             const timeStr = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' }); // "hh:mm" 24小時制
@@ -215,11 +213,17 @@
         if (homePage) {
           document.getElementById("nav-header").onclick = () => {
             document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
-            updateBreadcrumb(["Jubo HQ Office Guideline", homePage.Title], homePage.Page_ID);
+
+            const breadcrumb = ["Jubo HQ Office Guideline", homePage.Title];
+            const pageId = homePage.Page_ID;
             const url = homePage.View_Mode === "db"
-              ? `db_view.html?pageId=${homePage.Page_ID}`
-              : `page_view.html?pageId=${homePage.Page_ID}`;
+              ? `db_view.html?pageId=${pageId}`
+              : `page_view.html?pageId=${pageId}`;
             viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+
+            setTimeout(() => {
+              updateBreadcrumb(breadcrumb, pageId);
+            }, 100);
           };
           document.getElementById("nav-header").click(); // 預設載入首頁
         }
