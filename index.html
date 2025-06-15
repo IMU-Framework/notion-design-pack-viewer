@@ -169,9 +169,14 @@
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
 
               const breadcrumb = ["Jubo HQ Office Guideline", groupTitle];
-              setTimeout(() => {
+              const iframe = document.createElement("iframe");
+              iframe.src = url;
+              iframe.className = "w-full h-full border-none";
+              iframe.onload = () => {
                 updateBreadcrumb(breadcrumb, page.Page_ID);
-              }, 100);
+              };
+              viewer.innerHTML = "";
+              viewer.appendChild(iframe);
             }
           };
 
@@ -196,9 +201,14 @@
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
 
               const breadcrumb = ["Jubo HQ Office Guideline", groupTitle, item.Title];
-              setTimeout(() => {
+              const iframe = document.createElement("iframe");
+              iframe.src = url;
+              iframe.className = "w-full h-full border-none";
+              iframe.onload = () => {
                 updateBreadcrumb(breadcrumb, item.Page_ID);
-              }, 100);
+              };
+              viewer.innerHTML = "";
+              viewer.appendChild(iframe);
             };
             li.appendChild(a);
             ul.appendChild(li);
@@ -213,17 +223,19 @@
         if (homePage) {
           document.getElementById("nav-header").onclick = () => {
             document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
-
-            const breadcrumb = ["Jubo HQ Office Guideline", homePage.Title];
             const pageId = homePage.Page_ID;
             const url = homePage.View_Mode === "db"
               ? `db_view.html?pageId=${pageId}`
               : `page_view.html?pageId=${pageId}`;
-            viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-
-            setTimeout(() => {
+            const breadcrumb = ["Jubo HQ Office Guideline", homePage.Title];
+            const iframe = document.createElement("iframe");
+            iframe.src = url;
+            iframe.className = "w-full h-full border-none";
+            iframe.onload = () => {
               updateBreadcrumb(breadcrumb, pageId);
-            }, 100);
+            };
+            viewer.innerHTML = "";
+            viewer.appendChild(iframe);
           };
           document.getElementById("nav-header").click(); // 預設載入首頁
         }
@@ -244,24 +256,24 @@
       try {
         await fetch(`/api/page.js?pageId=${pageId}&clear=true`);
 
-        // ✅ 重新觸發 iframe reload
-        const iframe = document.querySelector("#notion-viewer iframe");
-        if (iframe?.src) {
-          iframe.src = iframe.src;
-        }
-
-        // ✅ 再次執行 updateBreadcrumb 以更新日期
         const breadcrumb = Array.from(document.getElementById("breadcrumb-nav").children)
           .filter(el => el.tagName === "SPAN")
           .map(el => el.textContent)
           .filter(t => t !== "/");
 
-        await updateBreadcrumb(breadcrumb, pageId);
+        const iframe = document.querySelector("#notion-viewer iframe");
+        if (iframe?.src) {
+          iframe.onload = () => {
+            updateBreadcrumb(breadcrumb, pageId);
+          };
+          iframe.src = iframe.src;
+        }
 
       } catch (err) {
         console.error("🔁 Reload failed", err);
       }
     };
+
 
   </script>
 </body>
