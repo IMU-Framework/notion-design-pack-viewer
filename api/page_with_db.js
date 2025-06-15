@@ -4,7 +4,7 @@ const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
 // ✅ 記憶體快取區
 const dbCache = new Map();
-const cacheTTL = 5 * 60 * 1000; // 5分鐘快取
+const cacheTTL = 30 * 60 * 1000; // 30分鐘快取
 
 export default async function handler(req, res) {
   const { pageId } = req.query;
