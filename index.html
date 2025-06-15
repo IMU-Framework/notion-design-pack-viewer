@@ -169,6 +169,11 @@
                 ? `db_view.html?pageId=${page.Page_ID}`
                 : `page_view.html?pageId=${page.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+
+              const breadcrumb = ["Jubo HQ Office Guideline", groupTitle];
+              setTimeout(() => {
+                updateBreadcrumb(breadcrumb, page.Page_ID);
+              }, 100);
             }
           };
 
@@ -191,6 +196,11 @@
                 ? `db_view.html?pageId=${item.Page_ID}`
                 : `page_view.html?pageId=${item.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+
+              const breadcrumb = ["Jubo HQ Office Guideline", groupTitle, item.Title];
+              setTimeout(() => {
+                updateBreadcrumb(breadcrumb, item.Page_ID);
+              }, 100);
             };
             li.appendChild(a);
             ul.appendChild(li);
