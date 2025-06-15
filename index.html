@@ -157,25 +157,6 @@
             </svg>`;
 
           summary.onclick = () => {
-  const page = pages.find(p => p.Title === groupTitle);
-  clearOutline();
-  document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
-  summary.classList.add("active-nav");
-
-  const breadcrumb = ["Jubo HQ Office Guideline", groupTitle];
-  const pageId = page.Page_ID;
-  const url = page.View_Mode?.toLowerCase() === "db"
-    ? `db_view.html?pageId=${pageId}`
-    : `page_view.html?pageId=${pageId}`;
-
-  updateBreadcrumb(breadcrumb, pageId); // ✅ 更新 Last edited
-
-  const iframe = document.createElement("iframe");
-  iframe.src = url;
-  iframe.className = "w-full h-full border-none";
-  viewer.innerHTML = "";
-  viewer.appendChild(iframe);
-};
             const page = pages.find(p => p.Title === groupTitle);
             clearOutline();
             document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
@@ -209,25 +190,6 @@
             a.className =
               "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
             a.onclick = (e) => {
-  e.stopPropagation();
-  clearOutline();
-  document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
-  a.classList.add("active-nav");
-
-  const breadcrumb = ["Jubo HQ Office Guideline", groupTitle, item.Title];
-  const pageId = item.Page_ID;
-  const url = item.View_Mode?.toLowerCase() === "db"
-    ? `db_view.html?pageId=${pageId}`
-    : `page_view.html?pageId=${pageId}`;
-
-  updateBreadcrumb(breadcrumb, pageId); // ✅ 更新 Last edited
-
-  const iframe = document.createElement("iframe");
-  iframe.src = url;
-  iframe.className = "w-full h-full border-none";
-  viewer.innerHTML = "";
-  viewer.appendChild(iframe);
-};
               e.stopPropagation();
               clearOutline();
               document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
@@ -260,22 +222,6 @@
         // ✅ 點擊 logo 回首頁
         if (homePage) {
           document.getElementById("nav-header").onclick = () => {
-  document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
-
-  const breadcrumb = ["Jubo HQ Office Guideline", homePage.Title];
-  const pageId = homePage.Page_ID;
-  const url = homePage.View_Mode === "db"
-    ? `db_view.html?pageId=${pageId}`
-    : `page_view.html?pageId=${pageId}`;
-
-  updateBreadcrumb(breadcrumb, pageId); // ✅ 更新 Last edited
-
-  const iframe = document.createElement("iframe");
-  iframe.src = url;
-  iframe.className = "w-full h-full border-none";
-  viewer.innerHTML = "";
-  viewer.appendChild(iframe);
-};
             document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
             const pageId = homePage.Page_ID;
             const url = homePage.View_Mode === "db"
