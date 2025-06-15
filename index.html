@@ -40,7 +40,7 @@
       return res.json();
     }
 
-      // Breadcrumb 更新邏輯
+      // Breadcrumb + Last edited 更新邏輯
     async function updateBreadcrumb(path, pageId) {
       const breadcrumb = document.getElementById("breadcrumb-nav");
       breadcrumb.innerHTML = "";
@@ -57,7 +57,6 @@
         breadcrumb.appendChild(span);
       });
 
-      // 加上 Last Edited 更新邏輯
       if (pageId) {
         try {
           const res = await fetch(`/api/page.js?pageId=${pageId}`);
@@ -69,9 +68,11 @@
         } catch (err) {
           console.error("無法取得最後更新時間", err);
         }
+
+        window.currentPageId = pageId;
       }
     }
-       // Last Edited 更新邏輯結束
+       // Breadcrumb + Last edited 更新邏輯結束
 
     function clearOutline() {
       document.querySelectorAll(".outline-nav").forEach(o => o.remove());
@@ -213,7 +214,25 @@
       }
     }
 
+    //加入「點擊 Last edited 重新載入」功能
+
     initSidebar();
+
+    document.getElementById("last-edited-time").onclick = async () => {
+      const pageId = window.currentPageId;
+      if (!pageId) return;
+
+      try {
+        await fetch(`/api/page.js?pageId=${pageId}&clear=true`);
+        const iframe = document.querySelector("#notion-viewer iframe");
+        if (iframe?.src) {
+          iframe.src = iframe.src; // reload iframe
+        }
+      } catch (err) {
+        console.error("🔁 Reload failed", err);
+      }
+    };
+
   </script>
 </body>
 </html>
