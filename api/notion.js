@@ -10,8 +10,9 @@ export default async function handler(req, res) {
       database_id: databaseId
     });
     
-    // 從資料庫屬性中提取標題
+    // 從資料庫屬性中提取標題及描述
     const databaseTitle = dbInfo.title.map(t => t.plain_text).join('') || 'OPMS';
+    const databaseDescription = dbInfo.description?.map(d => d.plain_text).join('') || 'description';
 
     const response = await notion.databases.query({
       database_id: databaseId,
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
       })
     );
 
-    res.status(200).json({ pages, databaseTitle });
+    res.status(200).json({ pages, databaseTitle, databaseDescription});
   } catch (error) {
     console.error("❌ Notion API error:", error);
     res.status(500).json({ error: error.message });
