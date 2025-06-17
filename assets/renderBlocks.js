@@ -305,7 +305,7 @@ async function renderBlock(block) {
         const id = `checkbox-${block.id}`;
         const checkedClass = value.checked ? 'line-through text-gray-500' : '';
         
-        // 基本 to_do 項目
+        // 基本 to-do 項目
         let content = `
           <div class="flex items-start mb-2">
             <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" 
@@ -319,7 +319,7 @@ async function renderBlock(block) {
           const childrenHtml = await renderBlocksInternal(value.children);
           content = `<div class="mb-4">
             <div class="flex items-start">
-              <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" 
+              <input type="checkbox" ${checked} id="${id}" class="mt-1.5 mr-2 cursor-pointer" 
                 onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
               <div class="${checkedClass}">${renderRichText(value.rich_text)}</div>
             </div>
