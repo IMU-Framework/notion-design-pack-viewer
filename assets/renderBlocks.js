@@ -112,7 +112,7 @@ async function renderHeading(block, headingType) {
       <summary class="${config.textClass} font-bold ${config.marginBottom} cursor-pointer" id="heading-${block.id}">
         ${renderRichText(value.rich_text)}
       </summary>
-      <div class="ml-6 pl-4 border-l-2 border-gray-200">${childrenHtml}</div>
+      <div class="ml-1 pl-4">${childrenHtml}</div>
     </details>`;
   }
   
@@ -124,7 +124,7 @@ async function processListItemChildren(value) {
   if (!value.children || value.children.length === 0) return '';
   
   const childrenHtml = await renderBlocksInternal(value.children);
-  return `<div class="mt-2 ml-2 pl-4 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
+  return `<div class="mt-2 pl-2 border-l-2 border-gray-200">${childrenHtml.join('')}</div>`;
 }
 
 async function renderBlock(block) {
@@ -151,7 +151,7 @@ async function renderBlock(block) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
           content = `<div class="mb-4">
             <p class="leading-relaxed">${renderRichText(value.rich_text)}</p>
-            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml}</div>
+            <div class="ml-1 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml}</div>
           </div>`;
         }
         return content;
@@ -191,7 +191,7 @@ async function renderBlock(block) {
       case 'callout': {
         // 增強的 callout 圖標支持
         const iconHtml = renderCalloutIcon(value.icon);
-        let bgColor = 'bg-blue-50';
+        let bgColor = 'bg-blue-30';
         let borderColor = 'border-blue-400';
         
         // 根據顏色調整背景和邊框
