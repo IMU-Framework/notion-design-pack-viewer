@@ -151,13 +151,24 @@ async function renderBlock(block) {
           const childrenHtml = (await renderBlocksInternal(value.children)).join('');
           content = `<div class="mb-4">
             <p class="leading-relaxed">${renderRichText(value.rich_text)}</p>
-            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-4">${childrenHtml}</div>
+            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml}</div>
           </div>`;
         }
-        
         return content;
       }
 
+      // 處理synced block的子區塊
+      case 'synced_block': {
+        if (value.children && value.children.length > 0) {
+          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+          return `<div class="mb-4 border-l-4 border-blue-300 pl-4 ml-2">
+            ${childrenHtml}
+          </div>`;
+        }
+        return '';
+      }
+
+      // 處理toggle的子區塊
       case 'toggle': {
         let content = `<details class="border rounded p-2 bg-gray-50 mb-4 group">
           <summary class="cursor-pointer flex items-center">
@@ -408,6 +419,7 @@ async function renderBlock(block) {
       default:
         return `<div class="text-sm text-gray-400 mb-2">[Unsupported block: ${type}]</div>`;
     }
+
   } catch (error) {
     console.error(`Error rendering block (${block?.type}):`, error);
     return renderErrorBlock(block?.type, error.message);
