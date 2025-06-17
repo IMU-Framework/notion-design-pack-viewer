@@ -161,7 +161,7 @@ async function renderBlock(block) {
       case 'synced_block': {
         let children = value.children;
 
-        // 如果是複製的分身，則從 synced_from 取原始 block_id 去抓 children
+        /// 如果是複製的分身，則從 synced_from 取原始 block_id 去抓 children
         if ((!children || children.length === 0) && value.synced_from?.block_id) {
           try {
             const res = await fetch(`/api/page.js?pageId=${value.synced_from.block_id}`);
@@ -171,7 +171,7 @@ async function renderBlock(block) {
             console.error("Failed to fetch synced_from content:", error);
           }
         }
-        // 如果是原始的block，直接抓 children
+        /// 如果是原始的block，直接抓 children
         if (children && children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(children)).join('');
           return `<div class="mb-4 pl-4 ml-2">
