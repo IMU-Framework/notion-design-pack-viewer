@@ -17,19 +17,25 @@
 
   <!-- 動態設定 <title> -->
   <script>
-    fetch("/api/notion")
-      .then(res => res.json())
-      .then(data => {
-        // 設定 <title>
-        const full = data.databaseTitle || "";
-        const idx = full.indexOf(" ");
-        const suffix = idx !== -1 ? full.slice(idx + 1) : full;
-        document.title = `OPMS - ${suffix}`;
+    document.addEventListener("DOMContentLoaded", () => {
+      fetch("/api/notion")
+        .then(res => res.json())
+        .then(data => {
+          // 設定 <title>
+          const full = data.databaseTitle || "";
+          const idx = full.indexOf(" ");
+          const suffix = idx !== -1 ? full.slice(idx + 1) : full;
+          document.title = `OPMS - ${suffix}`;
 
-        // 設定 tooltip（hover 顯示 description）
-        const desc = data.databaseDescription || '';
-        document.getElementById("nav-header").title = desc;
-      });
+          // 設定 tooltip
+          const desc = data.databaseDescription || "";
+          const nav = document.getElementById("nav-header");
+          if (nav) {
+            nav.setAttribute("title", desc);
+            console.log("✅ tooltip set:", desc);
+          }
+        });
+    });
   </script>
 </head>
 
