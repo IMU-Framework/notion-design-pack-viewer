@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 180 180">
+  <defs>
+    <style>
+      .cls-1, .cls-2, .cls-3 {
+        fill: #fff;
+      }
+
+      .cls-4, .cls-5 {
+        fill: none;
+      }
+
+      .cls-6 {
+        clip-path: url(#clippath-1);
+      }
+
+      .cls-2 {
+        font-family: PosteramaText-Bold, 'Posterama Text';
+        font-weight: 700;
+      }
+
+      .cls-2, .cls-3 {
+        font-size: 21.6px;
+      }
+
+      .cls-7 {
+        clip-path: url(#clippath-2);
+      }
+
+      .cls-3 {
+        font-family: PosteramaText-Regular, 'Posterama Text';
+      }
+
+      .cls-5 {
+        stroke: #fff;
+        stroke-miterlimit: 10;
+        stroke-width: .57px;
+      }
+
+      .cls-8 {
+        clip-path: url(#clippath);
+      }
+    </style>
+    <clipPath id="clippath">
+      <rect class="cls-4" width="180" height="180"/>
+    </clipPath>
+    <clipPath id="clippath-1">
+      <rect class="cls-4" width="180" height="180"/>
+    </clipPath>
+    <clipPath id="clippath-2">
+      <rect class="cls-4" width="180" height="180"/>
+    </clipPath>
+  </defs>
+  <g class="cls-8">
+    <g class="cls-6">
+      <path d="M180,90c0,49.71-40.29,90-90,90S0,139.71,0,90,40.29,0,90,0s90,40.29,90,90"/>
+    </g>
+    <g class="cls-7">
+      <path class="cls-1" d="M120.6,43.84v41.44h-4.53v-42.5l-7.08,12.27-3.93-2.27,6.56-11.36c2.47-4.27,8.99-2.52,8.99,2.41"/>
+      <path class="cls-5" d="M120.6,43.84v41.44h-4.53v-42.5l-7.08,12.27-3.93-2.27,6.56-11.36c2.47-4.27,8.99-2.52,8.99,2.41Z"/>
+      <path class="cls-1" d="M92.27,56.95h-28.33v42.5h42.5l-2.62,4.53h-38.47c-3.29,0-5.95-2.66-5.95-5.95v-39.67c0-3.29,2.66-5.95,5.95-5.95h26.92v4.53Z"/>
+      <path class="cls-5" d="M92.27,56.95h-28.33v42.5h42.5l-2.62,4.53h-38.47c-3.29,0-5.95-2.66-5.95-5.95v-39.67c0-3.29,2.66-5.95,5.95-5.95h26.92v4.53Z"/>
+      <rect class="cls-1" x="82.92" y="69.98" width="4.53" height="16.43"/>
+      <rect class="cls-5" x="82.92" y="69.98" width="4.53" height="16.43"/>
+      <rect class="cls-1" x="78.1" y="75.93" width="14.17" height="4.53"/>
+      <rect class="cls-5" x="78.1" y="75.93" width="14.17" height="4.53"/>
+    </g>
+    <text class="cls-3" transform="translate(34.95 140.26)"><tspan x="0" y="0">IMU </tspan></text>
+    <text class="cls-2" transform="translate(81.18 140.26)"><tspan x="0" y="0">OPMS</tspan></text>
+  </g>
+</svg>
