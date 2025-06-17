@@ -94,7 +94,7 @@
       sidebar.innerHTML = "";
 
       try {
-        const { pages } = await fetchSidebarData();
+        const { pages, databaseTitle } = await fetchSidebarData();
 
         // 更新導航標題
         if (databaseTitle) {
