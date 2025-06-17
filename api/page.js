@@ -4,7 +4,7 @@ const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
 // ✅ 記憶體快取區
 const pageCache = new Map();
-const cacheTTL = 30 * 60 * 1000; // 30分鐘快取
+const cacheTTL = 5 * 60 * 1000; // 5分鐘快取
 
 // 遞迴抓取所有 blocks（含 children）
 async function getBlockChildren(blockId, depth = 0, maxDepth = 3) {
@@ -21,10 +21,10 @@ async function getBlockChildren(blockId, depth = 0, maxDepth = 3) {
     cursor = response.has_more ? response.next_cursor : null;
   } while (cursor);
 
-  // 遞迴抓取子層（僅對 has_children 的 block 做遞迴）
+  // 遞迴抓取子層（僅對 has_children 的 block 做遞迴，以及判斷是否為synced_block）
   if (depth < maxDepth) {
     for (const block of blocks) {
-      if (block.has_children) {
+      if (block.has_children || block.type === 'synced_block') {
         const childBlocks = await getBlockChildren(block.id, depth + 1, maxDepth);
         if (block[block.type]) {
           block[block.type].children = childBlocks;
