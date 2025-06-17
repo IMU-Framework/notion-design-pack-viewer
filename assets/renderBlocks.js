@@ -304,29 +304,25 @@ async function renderBlock(block) {
         const checked = value.checked ? 'checked' : '';
         const id = `checkbox-${block.id}`;
         const checkedClass = value.checked ? 'line-through text-gray-500' : '';
-        
-        // 基本 to-do 項目
+        const richText = renderRichText(value.rich_text);
+
+        const checkboxHtml = `
+          <input type="checkbox" ${checked} id="${id}" class="mt-1.5 mr-2 cursor-pointer"
+            onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
+          <div class="${checkedClass}">${richText}</div>`;
+
         let content = `
-          <div class="flex items-start mb-2">
-            <input type="checkbox" ${checked} id="${id}" class="mt-1 mr-2 cursor-pointer" 
-              onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
-            <div class="${checkedClass}">${renderRichText(value.rich_text)}</div>
-          </div>
-        `;
-        
-        // 處理子項目
+          <div class="flex items-start mb-2">${checkboxHtml}</div>`;
+
         if (value.children && value.children.length > 0) {
           const childrenHtml = await renderBlocksInternal(value.children);
-          content = `<div class="mb-4">
-            <div class="flex items-start">
-              <input type="checkbox" ${checked} id="${id}" class="mt-1.5 mr-2 cursor-pointer" 
-                onchange="this.nextElementSibling.classList.toggle('line-through'); this.nextElementSibling.classList.toggle('text-gray-500')">
-              <div class="${checkedClass}">${renderRichText(value.rich_text)}</div>
-            </div>
-            <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml.join('')}</div>
-          </div>`;
+          content = `
+            <div class="mb-4">
+              <div class="flex items-start">${checkboxHtml}</div>
+              <div class="ml-6 pl-4 border-l-2 border-gray-200 mt-2">${childrenHtml.join('')}</div>
+            </div>`;
         }
-        
+
         return content;
       }
 
