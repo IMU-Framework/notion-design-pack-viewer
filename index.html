@@ -32,7 +32,7 @@
   </div>
 
   <script>
-    const NOTION_DB_URL = "/api/notion.js";
+    const NOTION_DB_URL = "/api/notion";
 
     async function fetchSidebarData() {
       const res = await fetch(NOTION_DB_URL);
@@ -59,7 +59,7 @@
 
       if (pageId) {
         try {
-          const res = await fetch(`/api/page.js?pageId=${pageId}`);
+          const res = await fetch(`/api/page?pageId=${pageId}`);
           const data = await res.json();
           if (data.lastEdited) {
             const d = new Date(data.lastEdited);
@@ -259,7 +259,7 @@
       if (!pageId) return;
 
       try {
-        await fetch(`/api/page.js?pageId=${pageId}&clear=true`);
+        await fetch(`/api/page?pageId=${pageId}&clear=true`);
 
         const breadcrumb = Array.from(document.getElementById("breadcrumb-nav").children)
           .filter(el => el.tagName === "SPAN")
