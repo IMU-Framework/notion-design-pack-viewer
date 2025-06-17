@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jubo台北總部辦公室設計手冊</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .active-nav {
-      transition: background-color 0.2s, color 0.2s;
-      background-color: #e0f2fe;
-      color: #1e40af;
-    }
-  </style>
+  <!-- 預設標題 -->
+  <title>%SITE_TITLE%</title>
+  <!-- Favicon 設定 -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <script src="https://cdn.tailwindcss.com"></script>  
 </head>
+
 <body class="h-screen flex bg-gray-100">
   <div class="flex flex-col w-64 bg-white border-r">
-    <div id="nav-header" class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b cursor-pointer">Jubo HQ</div>
+    <div id="nav-header" class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b cursor-pointer">OPMS</div>
     <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
 
@@ -95,8 +95,13 @@
 
       try {
         const { pages } = await fetchSidebarData();
-        const activePages = pages.filter((p) => p.Active);
 
+        // 更新導航標題
+        if (databaseTitle) {
+          document.getElementById("nav-header").textContent = databaseTitle;
+        }
+
+        const activePages = pages.filter((p) => p.Active);
         const homeCandidates = activePages.filter((p) => p.Title === "Home");
         const homePage = homeCandidates.sort((a, b) => new Date(a.CreatedTime) - new Date(b.CreatedTime))[0];
         const nonHomePages = activePages.filter((p) => p.Title !== "Home");
@@ -117,7 +122,7 @@
               CreatedTime: page.CreatedTime,
               Icon: page.Icon || null,
             });
-          }
+          }  
         });
 
         for (const group in groupMap) {
