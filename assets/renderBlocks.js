@@ -174,7 +174,7 @@ async function renderBlock(block) {
         // 如果是原始的block，直接抓 children
         if (children && children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(children)).join('');
-          return `<div class="mb-4 border-l-4 border-blue-300 pl-4 ml-2">
+          return `<div class="mb-4 pl-4 ml-2">
             ${childrenHtml}
           </div>`;
         }
