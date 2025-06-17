@@ -175,7 +175,6 @@ async function renderBlock(block) {
         if (children && children.length > 0) {
           const childrenHtml = (await renderBlocksInternal(children)).join('');
           return `<div class="mb-4 border-l-4 border-blue-300 pl-4 ml-2">
-            <div class="text-xs text-blue-500 mb-1">🔄 同步區塊</div>
             ${childrenHtml}
           </div>`;
         }
