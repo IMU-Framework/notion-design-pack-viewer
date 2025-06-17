@@ -159,9 +159,23 @@ async function renderBlock(block) {
 
       // 處理synced block的子區塊
       case 'synced_block': {
-        if (value.children && value.children.length > 0) {
-          const childrenHtml = (await renderBlocksInternal(value.children)).join('');
+        let children = value.children;
+
+        // 如果是複製的分身，則從 synced_from 取原始 block_id 去抓 children
+        if ((!children || children.length === 0) && value.synced_from?.block_id) {
+          try {
+            const res = await fetch(`/api/page.js?pageId=${value.synced_from.block_id}`);
+            const data = await res.json();
+            children = data.blocks;
+          } catch (error) {
+            console.error("Failed to fetch synced_from content:", error);
+          }
+        }
+        // 如果是原始的block，直接抓 children
+        if (children && children.length > 0) {
+          const childrenHtml = (await renderBlocksInternal(children)).join('');
           return `<div class="mb-4 border-l-4 border-blue-300 pl-4 ml-2">
+            <div class="text-xs text-blue-500 mb-1">🔄 同步區塊</div>
             ${childrenHtml}
           </div>`;
         }
