@@ -3,14 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <!-- 預設標題 -->
-  <title>%SITE_TITLE%</title>
-  <!-- Favicon 設定 -->
-  <!-- <link rel="icon" href="/favicon.ico" sizes="any"> -->
+  <title>OPMS - Guideline</title>
+
+  <!-- Favicon 和其他資源 -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <script src="https://cdn.tailwindcss.com"></script>  
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 動態設定 <title> -->
+  <script>
+    fetch("/api/notion")
+      .then(res => res.json())
+      .then(data => {
+        const full = data.databaseTitle || "";
+        const idx = full.indexOf(" ");
+        const suffix = idx !== -1 ? full.slice(idx + 1) : full;
+        document.title = `OPMS - ${suffix}`;
+      });
+  </script>
 </head>
 
 <body class="h-screen flex bg-gray-100">
