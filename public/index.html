@@ -20,10 +20,15 @@
     fetch("/api/notion")
       .then(res => res.json())
       .then(data => {
+        // 設定 <title>
         const full = data.databaseTitle || "";
         const idx = full.indexOf(" ");
         const suffix = idx !== -1 ? full.slice(idx + 1) : full;
         document.title = `OPMS - ${suffix}`;
+
+        // 設定 tooltip（hover 顯示 description）
+        const desc = data.databaseDescription || '';
+        document.getElementById("nav-header").title = desc;
       });
   </script>
 </head>
