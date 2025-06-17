@@ -25,7 +25,15 @@ async function getBlockChildren(blockId, depth = 0, maxDepth = 3) {
   if (depth < maxDepth) {
     for (const block of blocks) {
       if (block.has_children || block.type === 'synced_block') {
-        const childBlocks = await getBlockChildren(block.id, depth + 1, maxDepth);
+        let childBlocks = [];
+
+        // 如果是 synced_block 且來自別的 block，改抓 synced_from 的 block
+        if (block.type === 'synced_block' && block.synced_block?.synced_from?.block_id) {
+          childBlocks = await getBlockChildren(block.synced_block.synced_from.block_id, depth + 1, maxDepth);
+        } else {
+          childBlocks = await getBlockChildren(block.id, depth + 1, maxDepth);
+        }
+
         if (block[block.type]) {
           block[block.type].children = childBlocks;
         }
