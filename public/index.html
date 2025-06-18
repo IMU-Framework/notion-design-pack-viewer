@@ -169,11 +169,13 @@
 
         // ✅ Render sidebar groups (with icon & clickable summary)
         parentMeta.forEach(({ title: groupTitle, Icon: groupIcon }) => {
+          const hasChildren = groupMap[groupTitle] && groupMap[groupTitle].length > 0;
+
           const details = document.createElement("details");
           details.classList.add("group");
 
           const summary = document.createElement("summary");
-          summary.className = "flex items-center justify-between cursor-pointer px-3 py-2 text-base font-semibold text-gray-800 hover:bg-blue-50 rounded-lg";
+          summary.className = `flex items-center justify-between cursor-pointer px-3 py-2 text-base ${hasChildren ? "font-semibold" : "font-normal"} text-gray-800 hover:bg-blue-50 rounded-lg`;
 
           const iconHTML = groupIcon
             ? (groupIcon.startsWith("http")
@@ -183,9 +185,10 @@
 
           summary.innerHTML = `
             <span class="flex items-center">${iconHTML}${groupTitle}</span>
+            ${hasChildren ? `
             <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>`;
+            </svg>` : ''}`;  // ← 不顯示箭頭
 
           summary.onclick = () => {
             const page = pages.find(p => p.Title === groupTitle);
@@ -198,57 +201,42 @@
                 ? `db_view.html?pageId=${page.Page_ID}`
                 : `page_view.html?pageId=${page.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-
-              const breadcrumb = ["Jubo HQ Office Guideline", groupTitle];
-              const iframe = document.createElement("iframe");
-              iframe.src = url;
-              iframe.className = "w-full h-full border-none";
-              iframe.onload = () => {
-                updateBreadcrumb(breadcrumb, page.Page_ID);
-              };
-              viewer.innerHTML = "";
-              viewer.appendChild(iframe);
             }
           };
 
-          const ul = document.createElement("ul");
-          ul.className = "ml-8 mt-2 space-y-1 text-base";
-
-          groupMap[groupTitle].forEach((item) => {
-            const li = document.createElement("li");
-            const a = document.createElement("a");
-            a.innerHTML = renderIcon(item.Icon, item.Title);
-            a.className =
-              "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
-            a.onclick = (e) => {
-              e.stopPropagation();
-              clearOutline();
-              document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
-              a.classList.add("active-nav");
-              updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title], item.Page_ID);
-              const url = item.View_Mode?.toLowerCase() === "db"
-                ? `db_view.html?pageId=${item.Page_ID}`
-                : `page_view.html?pageId=${item.Page_ID}`;
-              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-
-              const breadcrumb = ["Jubo HQ Office Guideline", groupTitle, item.Title];
-              const iframe = document.createElement("iframe");
-              iframe.src = url;
-              iframe.className = "w-full h-full border-none";
-              iframe.onload = () => {
-                updateBreadcrumb(breadcrumb, item.Page_ID);
-              };
-              viewer.innerHTML = "";
-              viewer.appendChild(iframe);
-            };
-            li.appendChild(a);
-            ul.appendChild(li);
-          });
-
           details.appendChild(summary);
-          details.appendChild(ul);
+
+          if (hasChildren) {
+            const ul = document.createElement("ul");
+            ul.className = "ml-8 mt-2 space-y-1 text-base";
+
+            groupMap[groupTitle].forEach((item) => {
+              const li = document.createElement("li");
+              const a = document.createElement("a");
+              a.innerHTML = renderIcon(item.Icon, item.Title);
+              a.className =
+                "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
+              a.onclick = (e) => {
+                e.stopPropagation();
+                clearOutline();
+                document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
+                a.classList.add("active-nav");
+                updateBreadcrumb(["Jubo HQ Office Guideline", groupTitle, item.Title], item.Page_ID);
+                const url = item.View_Mode?.toLowerCase() === "db"
+                  ? `db_view.html?pageId=${item.Page_ID}`
+                  : `page_view.html?pageId=${item.Page_ID}`;
+                viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+              };
+              li.appendChild(a);
+              ul.appendChild(li);
+            });
+
+            details.appendChild(ul);
+          }
+
           sidebar.appendChild(details);
         });
+
 
         // ✅ 點擊 logo 回首頁
         if (homePage) {
