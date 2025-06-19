@@ -61,7 +61,13 @@ export default async function handler(req, res) {
   // ✅ 嘗試讀取快取
   const cached = pageCache.get(pageId);
   if (cached && Date.now() - cached.timestamp < cacheTTL) {
-    return res.status(200).json({ blocks: cached.blocks, fromCache: true });
+      return res.status(200).json({
+        blocks: cached.blocks,
+        lastEdited: cached.lastEdited,
+        title: cached.title,
+        group: cached.group,
+        fromCache: true
+      });
   }
 
   try {
@@ -82,7 +88,7 @@ export default async function handler(req, res) {
     }
 
     const blocks = await getBlockChildren(pageId);
-    pageCache.set(pageId, { blocks, lastEdited, timestamp: Date.now() }); // 更新快取
+    pageCache.set(pageId, { blocks, lastEdited, title, group, timestamp: Date.now() }); // 更新快取
 
     res.status(200).json({ blocks, lastEdited, title, group });
   } catch (err) {
