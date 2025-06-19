@@ -42,10 +42,13 @@
 
         const data = await response.json();
 
-        // 更新 breadcrumb nav
+        // ✅ 更新 breadcrumb nav
         const breadcrumb = document.getElementById("breadcrumb-nav");
         breadcrumb.innerHTML = '';
-        const items = ['OPMS', data.group || '', data.title || '未命名頁面'];
+
+        // ✅ 組成層級：OPMS → group (可省略) → title
+        const items = ['OPMS', ...(data.group ? [data.group] : []), data.title || '未命名頁面'];
+        
         items.forEach((text, idx) => {
           if (idx > 0) {
             const sep = document.createElement("span");
