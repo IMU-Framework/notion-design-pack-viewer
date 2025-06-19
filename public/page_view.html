@@ -60,20 +60,38 @@
     }
 
     function showLoadingBar(isCached) {
-      const overlay = document.getElementById('loading-overlay');
-      const bar = document.getElementById('loading-bar');
-      overlay.classList.remove('hidden');
-      overlay.classList.remove('fade-out');
+  const overlay = document.getElementById('loading-overlay');
+  const bar = document.getElementById('loading-bar');
+  overlay.classList.remove('hidden');
+  overlay.classList.remove('fade-out');
 
-      if (isCached) {
-        bar.classList.add('animate-spin');
-        bar.style.width = '2rem';
-        bar.style.height = '2rem';
-        bar.style.borderRadius = '9999px';
-        bar.style.border = '4px solid #93c5fd';
-        bar.style.borderTopColor = '#2563eb';
-        bar.style.backgroundColor = 'transparent';
-      } else {
+  // reset styles
+  bar.removeAttribute('style');
+  bar.className = '';
+
+  if (!isCached) {
+    // 🟦 進度條顯示（加載中）
+    bar.className = 'bg-blue-600 h-2 rounded-full transition-all duration-300';
+    bar.style.transition = 'none';
+    bar.style.width = '5%';
+    void bar.offsetWidth;
+    bar.style.transition = 'width 0.3s ease';
+    let progress = 5;
+    window.loadingInterval = setInterval(() => {
+      if (progress < 90) {
+        progress += Math.random() * 5;
+        bar.style.width = `${Math.min(progress, 90)}%`;
+      }
+    }, 200);
+  } else {
+    // 🔵 Spinner 顯示（快取）
+    bar.className = 'animate-spin border-4 border-blue-300 border-t-blue-600 rounded-full';
+    bar.style.width = '2rem';
+    bar.style.height = '2rem';
+    bar.style.backgroundColor = 'transparent';
+  }
+}
+} else {
         bar.classList.remove('animate-spin');
         bar.style.transition = 'none';
         bar.style.width = '5%';
