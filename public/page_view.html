@@ -9,11 +9,7 @@
 <body class="bg-white text-gray-800">
   <main class="max-w-4xl mx-auto px-6">
     <article id="notion-content" class="space-y-4">
-      <div class="animate-pulse">
-        <div class="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-        <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
-        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
-      </div>
+      <!-- 初始載入動畫 -->
     </article>
   </main>
 
@@ -21,24 +17,34 @@
     const urlParams = new URLSearchParams(window.location.search);
     let currentPageId = urlParams.get('pageId');
 
+    const loadingHTML = `
+      <div class="animate-pulse">
+        <div class="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+        <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+      </div>
+    `;
+
     async function loadPageContentById(pageId) {
+      const contentElement = document.getElementById('notion-content');
+      contentElement.innerHTML = loadingHTML;
+
       try {
         const response = await fetch(`/api/page?pageId=${pageId}`);
         if (!response.ok) throw new Error("無法取得頁面內容");
 
         const data = await response.json();
-        const contentElement = document.getElementById('notion-content');
 
         if (window.renderBlocks) {
           const htmlContent = await window.renderBlocks(data.blocks);
           contentElement.innerHTML = htmlContent.join('');
-          enhanceInternalLinks(); // 重新掛上連結事件
+          enhanceInternalLinks();
         } else {
           contentElement.innerHTML = '<div class="text-red-600">⚠️ renderBlocks 函數未載入</div>';
         }
       } catch (error) {
         console.error("載入失敗:", error);
-        document.getElementById('notion-content').innerHTML = `<div class="text-red-600">⚠️ 載入失敗：${error.message}</div>`;
+        contentElement.innerHTML = `<div class="text-red-600">⚠️ 載入失敗：${error.message}</div>`;
       }
     }
 
@@ -61,8 +67,9 @@
     }
 
     async function loadInitialPageContent() {
+      const contentElement = document.getElementById('notion-content');
       if (!currentPageId || currentPageId === "null" || currentPageId === "undefined") {
-        document.getElementById('notion-content').innerHTML = `
+        contentElement.innerHTML = `
           <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
             <h3 class="font-bold text-lg mb-2">⚠️ 無效的 Page ID</h3>
             <p>無法載入頁面內容，請確認 Page ID 是否正確。</p>
@@ -75,13 +82,14 @@
         return;
       }
 
-      // 確保 renderBlocks 已載入
+      contentElement.innerHTML = loadingHTML;
+
       if (typeof window.renderBlocks === 'undefined') {
         const script = document.createElement('script');
         script.src = '/assets/renderBlocks.js';
         script.onload = () => loadPageContentById(currentPageId);
         script.onerror = () => {
-          document.getElementById('notion-content').innerHTML = `
+          contentElement.innerHTML = `
             <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
               <h3 class="font-bold text-lg mb-2">⚠️ 腳本載入失敗</h3>
               <p>無法載入 renderBlocks.js</p>
@@ -99,7 +107,6 @@
 
     window.addEventListener('DOMContentLoaded', loadInitialPageContent);
 
-    // 支援瀏覽器返回與前進按鈕的內容切換
     window.addEventListener('popstate', (event) => {
       if (event.state?.pageId) {
         currentPageId = event.state.pageId;
