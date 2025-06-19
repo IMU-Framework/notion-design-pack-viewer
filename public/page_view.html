@@ -10,7 +10,7 @@
   <header class="bg-white px-6 py-3 shadow-sm border-b">
     <nav class="flex justify-between text-sm text-gray-500" id="breadcrumb-bar">
       <div id="breadcrumb-nav" class="flex space-x-2"></div>
-      <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap"></div>
+      <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap cursor-pointer hover:text-blue-700 transition-colors"></div>
     </nav>
   </header>
 
@@ -67,7 +67,7 @@
           const d = new Date(data.lastEdited);
           const dateStr = d.toLocaleDateString("sv-SE");
           const timeStr = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
-          document.getElementById("last-edited-time").textContent = `Last edited: ${dateStr} ${timeStr}`;
+          document.getElementById("last-edited-time").textContent = `Last edited: ${dateStr} ${timeStr} ⟳`;
         }
 
         if (window.renderBlocks) {
@@ -148,6 +148,18 @@
         loadPageContentById(pageId);
       }
     });
+
+    // ✅ 加入 Refresh 按鈕功能
+    document.getElementById("last-edited-time").onclick = async () => {
+    if (!currentPageId) return;
+    try {
+        await fetch(`/api/page?pageId=${currentPageId}&clear=true`);
+        loadPageContentById(currentPageId); // 重新載入當前頁面
+    } catch (err) {
+        console.error("🔁 Reload failed", err);
+    }
+    };
+
   </script>
 </body>
 </html>
