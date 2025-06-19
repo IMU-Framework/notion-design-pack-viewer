@@ -3,34 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title id="dynamic-title">OPMS Page Viewer</title>
+  <title>Notion Page Viewer</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* ⬇️ Loading 淡出動畫 */
-    #loading-overlay.fade-out {
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-    /* ⬇️ Loading... 閃爍點點動畫 */
-    @keyframes dot {
-      0%, 20% { content: ''; }
-      40% { content: '.'; }
-      60% { content: '..'; }
-      80%, 100% { content: '...'; }
-    }
-    .loading-text::after {
-      display: inline-block;
-      white-space: pre;
-      animation: dot 1.5s steps(3, end) infinite;
-      content: '';
-    }
-  </style>
 </head>
 <body class="bg-white text-gray-800 relative">
-
-  <!-- ⬇️ Loading Bar Overlay + 標題 -->
-  <div id="loading-overlay" class="fixed inset-0 flex flex-col items-center justify-center z-50 bg-white bg-opacity-80 hidden">
-    <div class="text-gray-600 mb-3 text-sm loading-text">Loading</div>
+  <!-- Loading Bar Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 flex items-center justify-center z-50 bg-white bg-opacity-80 hidden">
     <div class="w-64">
       <div class="w-full bg-gray-200 rounded-full h-2">
         <div id="loading-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 5%"></div>
@@ -38,107 +16,64 @@
     </div>
   </div>
 
-  <!-- ⬇️ 主內容區塊 -->
   <main class="max-w-4xl mx-auto px-6">
     <article id="notion-content" class="space-y-4">
-      <!-- 初始載入動畫（已被 loading bar 取代） -->
+      <!-- 初始載入動畫 -->
     </article>
   </main>
-
-  <!-- ⬇️ 載入 renderBlocks.js -->
-  <script src="/assets/renderBlocks.js"></script>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     let currentPageId = urlParams.get('pageId');
 
-    // ⬇️ 根據快取與否切換 loading 顯示方式
-    async function fetchWithCache(url, options = {}) {
-      const response = await fetch(url, { ...options });
-      const isCached = response.headers.get('x-cache')?.includes('HIT') || response.headers.get('cf-cache-status') === 'HIT';
-      return { response, isCached };
-    }
+    const loadingHTML = `
+      <div class="animate-pulse">
+        <div class="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+        <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+      </div>
+    `;
 
-    function showLoadingBar(isCached) {
-  const overlay = document.getElementById('loading-overlay');
-  const bar = document.getElementById('loading-bar');
-  overlay.classList.remove('hidden');
-  overlay.classList.remove('fade-out');
+    function showLoadingBar() {
+      const overlay = document.getElementById('loading-overlay');
+      const bar = document.getElementById('loading-bar');
+      overlay.classList.remove('hidden');
+      bar.style.width = '5%';
+      let progress = 5;
 
-  // reset styles
-  bar.removeAttribute('style');
-  bar.className = '';
-
-  if (!isCached) {
-    // 🟦 進度條顯示（加載中）
-    bar.className = 'bg-blue-600 h-2 rounded-full transition-all duration-300';
-    bar.style.transition = 'none';
-    bar.style.width = '5%';
-    void bar.offsetWidth;
-    bar.style.transition = 'width 0.3s ease';
-    let progress = 5;
-    window.loadingInterval = setInterval(() => {
-      if (progress < 90) {
-        progress += Math.random() * 5;
-        bar.style.width = `${Math.min(progress, 90)}%`;
-      }
-    }, 200);
-  } else {
-    // 🔵 Spinner 顯示（快取）
-    bar.className = 'animate-spin border-4 border-blue-300 border-t-blue-600 rounded-full';
-    bar.style.width = '2rem';
-    bar.style.height = '2rem';
-    bar.style.backgroundColor = 'transparent';
-  }
-}
-} else {
-        bar.classList.remove('animate-spin');
-        bar.style.transition = 'none';
-        bar.style.width = '5%';
-        void bar.offsetWidth;
-        bar.style.transition = 'width 0.3s ease';
-        let progress = 5;
-        window.loadingInterval = setInterval(() => {
-          if (progress < 90) {
-            progress += Math.random() * 5;
-            bar.style.width = `${Math.min(progress, 90)}%`;
-          }
-        }, 200);
-      }
+      window.loadingInterval = setInterval(() => {
+        if (progress < 90) {
+          progress += Math.random() * 5;
+          bar.style.width = `${Math.min(progress, 90)}%`;
+        }
+      }, 200);
     }
 
     function hideLoadingBar() {
       const overlay = document.getElementById('loading-overlay');
       const bar = document.getElementById('loading-bar');
       clearInterval(window.loadingInterval);
-      bar.classList.remove('animate-spin');
-      bar.removeAttribute('style');
-      bar.className = 'bg-blue-600 h-2 rounded-full transition-all duration-300';
+      bar.style.width = '100%';
       setTimeout(() => {
-        overlay.classList.add('fade-out');
-        setTimeout(() => {
-          overlay.classList.add('hidden');
-        }, 400);
-      }, 200);
+        overlay.classList.add('hidden');
+        bar.style.width = '5%';
+      }, 400);
     }
 
     async function loadPageContentById(pageId) {
       const contentElement = document.getElementById('notion-content');
-      contentElement.innerHTML = '';
+      showLoadingBar();
+      contentElement.innerHTML = loadingHTML;
 
       try {
-        const { response, isCached } = await fetchWithCache(`/api/page?pageId=${pageId}`);
+        const response = await fetch(`/api/page?pageId=${pageId}`);
         if (!response.ok) throw new Error("無法取得頁面內容");
 
-        showLoadingBar(isCached);
-
         const data = await response.json();
-        if (data.title) document.title = `${data.databaseTitle} - ${data.title}`;
 
         if (window.renderBlocks) {
-          const titleHTML = `<h1 class="text-3xl font-bold">${data.title || ''}</h1><hr class="my-4 border-t border-gray-300">`;
           const htmlContent = await window.renderBlocks(data.blocks);
-          contentElement.innerHTML = titleHTML + htmlContent.join('');
+          contentElement.innerHTML = htmlContent.join('');
           enhanceInternalLinks();
         } else {
           contentElement.innerHTML = '<div class="text-red-600">⚠️ renderBlocks 函數未載入</div>';
@@ -185,14 +120,37 @@
         return;
       }
 
-      loadPageContentById(currentPageId);
+      showLoadingBar();
+      contentElement.innerHTML = loadingHTML;
+
+      if (typeof window.renderBlocks === 'undefined') {
+        const script = document.createElement('script');
+        script.src = '/assets/renderBlocks.js';
+        script.onload = () => loadPageContentById(currentPageId);
+        script.onerror = () => {
+          contentElement.innerHTML = `
+            <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
+              <h3 class="font-bold text-lg mb-2">⚠️ 腳本載入失敗</h3>
+              <p>無法載入 renderBlocks.js</p>
+              <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                重新嘗試
+              </button>
+            </div>
+          `;
+          hideLoadingBar();
+        };
+        document.body.appendChild(script);
+      } else {
+        loadPageContentById(currentPageId);
+      }
     }
 
     window.addEventListener('DOMContentLoaded', loadInitialPageContent);
+
     window.addEventListener('popstate', (event) => {
       if (event.state?.pageId) {
         currentPageId = event.state.pageId;
-        loadPageContentById(pageId);
+        loadPageContentById(currentPageId);
       }
     });
   </script>
