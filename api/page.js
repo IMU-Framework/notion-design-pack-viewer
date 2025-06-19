@@ -68,10 +68,23 @@ export default async function handler(req, res) {
     const pageMeta = await notion.pages.retrieve({ page_id: pageId });
     const lastEdited = pageMeta.last_edited_time;
 
+    // 加這兩個
+    const title = pageMeta.properties?.Title?.title?.[0]?.plain_text || '未命名頁面';
+    let group = null;
+    try {
+      const groupRel = pageMeta.properties?.Group?.relation;
+      if (groupRel?.length > 0) {
+        const parentPage = await notion.pages.retrieve({ page_id: groupRel[0].id });
+        group = parentPage.properties?.Title?.title?.[0]?.plain_text || null;
+      }
+    } catch (e) {
+      console.warn("Group 讀取失敗", e);
+    }
+
     const blocks = await getBlockChildren(pageId);
     pageCache.set(pageId, { blocks, lastEdited, timestamp: Date.now() }); // 更新快取
 
-    res.status(200).json({ blocks, lastEdited });
+    res.status(200).json({ blocks, lastEdited, title, group });
   } catch (err) {
     console.error("❌ Notion API error in /api/page.js:", err.message);
     res.status(500).json({ error: "Failed to fetch Notion blocks" });
