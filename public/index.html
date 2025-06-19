@@ -10,15 +10,23 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="h-screen flex bg-gray-100">
+  <!-- ✅ Loading bar + message -->
+  <div id="sidebar-loading-wrapper" class="fixed top-0 left-0 w-full z-50">
+    <div id="sidebar-loading-bar" class="h-1 bg-blue-500 w-0 transition-all duration-700"></div>
+    <div id="sidebar-loading-text" class="text-xs text-gray-500 text-center py-1 bg-white shadow-sm hidden">Loading...</div>
+  </div>
+
   <div class="flex flex-col w-64 bg-white border-r">
     <div id="nav-header" class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b cursor-pointer">OPMS</div>
     <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
+
   <div class="flex-1 flex flex-col">
     <main class="flex-1 overflow-auto bg-white">
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
     </main>
   </div>
+
   <script>
     async function fetchSidebarData() {
       const res = await fetch("/api/notion");
@@ -41,6 +49,13 @@
       const sidebar = document.getElementById("sidebar-nav");
       const viewer = document.getElementById("notion-viewer");
       sidebar.innerHTML = "";
+
+      // ✅ 顯示 loading bar + text
+      const loadingBar = document.getElementById("sidebar-loading-bar");
+      const loadingText = document.getElementById("sidebar-loading-text");
+      loadingBar.classList.remove("w-0");
+      loadingBar.classList.add("w-4/5");
+      loadingText.classList.remove("hidden");
 
       try {
         const { pages, databaseTitle } = await fetchSidebarData();
@@ -166,9 +181,22 @@
           };
           document.getElementById("nav-header").click();
         }
+
+        // ✅ 隱藏 loading bar + text
+        loadingBar.classList.remove("w-4/5");
+        loadingBar.classList.add("w-full");
+        setTimeout(() => {
+          loadingBar.classList.add("w-0");
+          loadingBar.classList.remove("w-full");
+          loadingText.classList.add("hidden");
+        }, 600);
+
       } catch (err) {
         document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
         console.error(err);
+        loadingBar.classList.add("w-0");
+        loadingBar.classList.remove("w-4/5", "w-full");
+        loadingText.classList.add("hidden");
       }
     }
 
