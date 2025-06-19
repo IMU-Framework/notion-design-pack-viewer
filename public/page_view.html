@@ -8,10 +8,14 @@
 </head>
 <body class="bg-white text-gray-800 relative">
   <!-- Loading Bar Overlay -->
-  <div id="loading-overlay" class="fixed inset-0 flex items-center justify-center z-50 bg-white bg-opacity-80 hidden">
-    <div class="w-64">
-      <div class="w-full bg-gray-200 rounded-full h-2">
-        <div id="loading-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 5%"></div>
+  <div id="loading-overlay" class="fixed inset-0 flex flex-col items-center justify-center z-50 bg-white bg-opacity-80 hidden">
+  <div class="text-gray-600 mb-3 text-sm">Loading...</div>
+  <div class="w-64">
+    <div class="w-full bg-gray-200 rounded-full h-2">
+      <div id="loading-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 5%"></div>
+    </div>
+  </div>
+</div>
       </div>
     </div>
   </div>
@@ -32,7 +36,10 @@
       const overlay = document.getElementById('loading-overlay');
       const bar = document.getElementById('loading-bar');
       overlay.classList.remove('hidden');
-      bar.style.width = '5%';
+      bar.style.transition = 'none';
+  bar.style.width = '5%';
+  void bar.offsetWidth; // 強制 reflow
+  bar.style.transition = 'width 0.3s ease';
       let progress = 5;
 
       window.loadingInterval = setInterval(() => {
