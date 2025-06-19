@@ -6,16 +6,7 @@
   <title>Notion Page Viewer</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-white text-gray-800 relative">
-  <!-- Loading Bar Overlay -->
-  <div id="loading-overlay" class="fixed inset-0 flex items-center justify-center z-50 bg-white bg-opacity-80 hidden">
-    <div class="w-64">
-      <div class="w-full bg-gray-200 rounded-full h-2">
-        <div id="loading-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 5%"></div>
-      </div>
-    </div>
-  </div>
-
+<body class="bg-white text-gray-800">
   <main class="max-w-4xl mx-auto px-6">
     <article id="notion-content" class="space-y-4">
       <!-- 初始載入動畫 -->
@@ -26,37 +17,16 @@
     const urlParams = new URLSearchParams(window.location.search);
     let currentPageId = urlParams.get('pageId');
 
-    const loadingHTML = `<div></div>`; // 已由 loading bar 取代
-
-    function showLoadingBar() {
-      const overlay = document.getElementById('loading-overlay');
-      const bar = document.getElementById('loading-bar');
-      overlay.classList.remove('hidden');
-      bar.style.width = '5%';
-      let progress = 5;
-
-      window.loadingInterval = setInterval(() => {
-        if (progress < 90) {
-          progress += Math.random() * 5;
-          bar.style.width = `${Math.min(progress, 90)}%`;
-        }
-      }, 200);
-    }
-
-    function hideLoadingBar() {
-      const overlay = document.getElementById('loading-overlay');
-      const bar = document.getElementById('loading-bar');
-      clearInterval(window.loadingInterval);
-      bar.style.width = '100%';
-      setTimeout(() => {
-        overlay.classList.add('hidden');
-        bar.style.width = '5%';
-      }, 400);
-    }
+    const loadingHTML = `
+      <div class="animate-pulse">
+        <div class="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+        <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+      </div>
+    `;
 
     async function loadPageContentById(pageId) {
       const contentElement = document.getElementById('notion-content');
-      showLoadingBar();
       contentElement.innerHTML = loadingHTML;
 
       try {
@@ -75,8 +45,6 @@
       } catch (error) {
         console.error("載入失敗:", error);
         contentElement.innerHTML = `<div class="text-red-600">⚠️ 載入失敗：${error.message}</div>`;
-      } finally {
-        hideLoadingBar();
       }
     }
 
@@ -114,7 +82,6 @@
         return;
       }
 
-      showLoadingBar();
       contentElement.innerHTML = loadingHTML;
 
       if (typeof window.renderBlocks === 'undefined') {
@@ -131,7 +98,6 @@
               </button>
             </div>
           `;
-          hideLoadingBar();
         };
         document.body.appendChild(script);
       } else {
