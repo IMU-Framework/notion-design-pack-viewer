@@ -2,158 +2,298 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>OPMS Page Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- 預設標題 -->
+  <title>OPMS - Guideline</title>
+
+  <!-- Favicon 和其他資源 -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 動態設定 <title> -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      fetch("/api/notion")
+        .then(res => res.json())
+        .then(data => {
+          // 設定 <title>
+          const full = data.databaseTitle || "";
+          const idx = full.indexOf(" ");
+          const suffix = idx !== -1 ? full.slice(idx + 1) : full;
+          document.title = `OPMS - ${suffix}`;
+
+          // 設定 tooltip
+          const desc = data.databaseDescription || "";
+          const nav = document.getElementById("nav-header");
+          if (nav) {
+            nav.setAttribute("title", desc);
+            console.log("✅ tooltip set:", desc);
+          }
+        });
+    });
+  </script>
 </head>
-<body class="bg-white text-gray-800 relative">
-  <!-- Loading Bar Overlay -->
-  <div id="loading-overlay" class="fixed inset-0 flex flex-col items-center justify-center z-50 bg-white bg-opacity-80 hidden">
-  <div class="text-gray-600 mb-3 text-sm">Loading...</div>
-  <div class="w-64">
-    <div class="w-full bg-gray-200 rounded-full h-2">
-      <div id="loading-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 5%"></div>
-    </div>
-  </div>
-</div>
-      </div>
-    </div>
+
+<body class="h-screen flex bg-gray-100">
+  <div class="flex flex-col w-64 bg-white border-r">
+    <div id="nav-header" class="h-16 flex items-center px-6 text-xl font-bold text-blue-900 border-b cursor-pointer">OPMS</div>
+    <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
 
-  <main class="max-w-4xl mx-auto px-6">
-    <article id="notion-content" class="space-y-4">
-      <!-- 初始載入動畫 -->
-    </article>
-  </main>
+  <div class="flex-1 flex flex-col">
+    <header class="bg-white px-6 py-3 shadow-none">
+      <nav class="flex justify-between text-sm text-gray-500" id="breadcrumb-bar">
+        <div id="breadcrumb-nav" class="flex space-x-2"></div>
+        <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap cursor-pointer hover:text-blue-700 transition-colors"></div>
+      </nav>
+    </header>
+    <main class="flex-1 overflow-auto bg-white">
+      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
+    </main>
+  </div>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    let currentPageId = urlParams.get('pageId');
+    const NOTION_DB_URL = "/api/notion";
 
-    const loadingHTML = `<div></div>`; // 已由 loading bar 取代
+    async function fetchSidebarData() {
+      const res = await fetch(NOTION_DB_URL);
+      if (!res.ok) throw new Error("載入失敗");
+      return res.json();
+    }
 
-    function showLoadingBar() {
-      const overlay = document.getElementById('loading-overlay');
-      const bar = document.getElementById('loading-bar');
-      overlay.classList.remove('hidden');
-      bar.style.transition = 'none';
-  bar.style.width = '5%';
-  void bar.offsetWidth; // 強制 reflow
-  bar.style.transition = 'width 0.3s ease';
-      let progress = 5;
-
-      window.loadingInterval = setInterval(() => {
-        if (progress < 90) {
-          progress += Math.random() * 5;
-          bar.style.width = `${Math.min(progress, 90)}%`;
+      // Breadcrumb + Last edited 更新邏輯
+    async function updateBreadcrumb(path, pageId) {
+      const breadcrumb = document.getElementById("breadcrumb-nav");
+      breadcrumb.innerHTML = "";
+      path.forEach((p, idx) => {
+        if (idx > 0) {
+          const separator = document.createElement("span");
+          separator.textContent = "/";
+          separator.className = "text-gray-400";
+          breadcrumb.appendChild(separator);
         }
-      }, 200);
+        const span = document.createElement("span");
+        span.textContent = p;
+        span.className = idx === path.length - 1 ? "text-gray-700 font-semibold" : "text-gray-500";
+        breadcrumb.appendChild(span);
+      });
+
+      if (pageId) {
+        try {
+          const res = await fetch(`/api/page?pageId=${pageId}`);
+          const data = await res.json();
+          if (data.lastEdited) {
+            const d = new Date(data.lastEdited);
+            const dateStr = d.toLocaleDateString("sv-SE"); // "yyyy-mm-dd"
+            const timeStr = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' }); // "hh:mm" 24小時制
+            document.getElementById("last-edited-time").textContent = `Last edited: ${dateStr} ${timeStr} ⟳`;
+
+          }
+        } catch (err) {
+          console.error("無法取得最後更新時間", err);
+        }
+
+        window.currentPageId = pageId;
+      }
+    }
+       // Breadcrumb + Last edited 更新邏輯結束
+
+    function clearOutline() {
+      document.querySelectorAll(".outline-nav").forEach(o => o.remove());
     }
 
-    function hideLoadingBar() {
-      const overlay = document.getElementById('loading-overlay');
-      const bar = document.getElementById('loading-bar');
-      clearInterval(window.loadingInterval);
-      bar.style.width = '100%';
-      setTimeout(() => {
-        overlay.classList.add('hidden');
-        bar.style.width = '5%';
-      }, 400);
+    function renderIcon(icon, title) {
+      if (!icon) return title;
+      return icon.startsWith("http")
+        ? `<img src="${icon}" class="w-4 h-4 mr-2 inline" />${title}`
+        : `<span class="mr-2">${icon}</span>${title}`;
     }
 
-    async function loadPageContentById(pageId) {
-      const contentElement = document.getElementById('notion-content');
-      showLoadingBar();
-      contentElement.innerHTML = loadingHTML;
+    async function initSidebar() {
+      const sidebar = document.getElementById("sidebar-nav");
+      const viewer = document.getElementById("notion-viewer");
+      sidebar.innerHTML = "";
 
       try {
-        const response = await fetch(`/api/page?pageId=${pageId}`);
-        if (!response.ok) throw new Error("無法取得頁面內容");
+        const { pages, databaseTitle } = await fetchSidebarData();
 
-        const data = await response.json();
-
-        if (window.renderBlocks) {
-          const htmlContent = await window.renderBlocks(data.blocks);
-          contentElement.innerHTML = htmlContent.join('');
-          enhanceInternalLinks();
-        } else {
-          contentElement.innerHTML = '<div class="text-red-600">⚠️ renderBlocks 函數未載入</div>';
+        // 更新導航標題
+        if (databaseTitle) {
+          document.getElementById("nav-header").textContent = databaseTitle;
         }
-      } catch (error) {
-        console.error("載入失敗:", error);
-        contentElement.innerHTML = `<div class="text-red-600">⚠️ 載入失敗：${error.message}</div>`;
-      } finally {
-        hideLoadingBar();
-      }
-    }
 
-    function enhanceInternalLinks() {
-      const links = document.querySelectorAll('#notion-content a[href]');
-      links.forEach(link => {
-        const href = link.getAttribute('href');
-        const isInternalPageId = /^\/?[0-9a-f]{32}$/.test(href);
-        if (isInternalPageId) {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const pageId = href.replace(/^\//, '');
-            const newUrl = `${window.location.pathname}?pageId=${pageId}`;
-            window.history.pushState({ pageId }, '', newUrl);
-            currentPageId = pageId;
-            loadPageContentById(pageId);
+        const activePages = pages.filter((p) => p.Active);
+        const homeCandidates = activePages.filter((p) => p.Title === "Home");
+        const homePage = homeCandidates.sort((a, b) => new Date(a.CreatedTime) - new Date(b.CreatedTime))[0];
+        const nonHomePages = activePages.filter((p) => p.Title !== "Home");
+
+        const groupMap = {};
+        const parentMeta = [];
+
+        nonHomePages.forEach((page) => {
+          const group = page.Group?.trim();
+          if (group) {
+            if (!groupMap[group]) groupMap[group] = [];
+            groupMap[group].push(page);
+          } else {
+            groupMap[page.Title] = [];
+            parentMeta.push({
+              title: page.Title,
+              Order: page.Order ?? null,
+              CreatedTime: page.CreatedTime,
+              Icon: page.Icon || null,
+            });
+          }  
+        });
+
+        for (const group in groupMap) {
+          groupMap[group].sort((a, b) => {
+            if (a.Order != null && b.Order != null) return a.Order - b.Order;
+            if (a.Order != null) return -1;
+            if (b.Order != null) return 1;
+            return new Date(a.CreatedTime) - new Date(b.CreatedTime);
           });
         }
-      });
+
+        parentMeta.sort((a, b) => {
+          if (a.Order != null && b.Order != null) return a.Order - b.Order;
+          if (a.Order != null) return -1;
+          if (b.Order != null) return 1;
+          return new Date(a.CreatedTime) - new Date(b.CreatedTime);
+        });
+
+        // ✅ Render sidebar groups (with icon & clickable summary)
+        parentMeta.forEach(({ title: groupTitle, Icon: groupIcon }) => {
+          const hasChildren = groupMap[groupTitle] && groupMap[groupTitle].length > 0;
+
+          const details = document.createElement("details");
+          details.classList.add("group");
+
+          const summary = document.createElement("summary");
+          summary.className = `flex items-center justify-between cursor-pointer px-3 py-2 text-base ${hasChildren ? "font-semibold" : "font-normal"} text-gray-800 hover:bg-blue-50 rounded-lg`;
+
+          const iconHTML = groupIcon
+            ? (groupIcon.startsWith("http")
+                ? `<img src="${groupIcon}" class="w-4 h-4 mr-2 inline" />`
+                : `<span class="mr-2">${groupIcon}</span>`)
+            : "";
+
+          summary.innerHTML = `
+            <span class="flex items-center">${iconHTML}${groupTitle}</span>
+            ${hasChildren ? `
+            <svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>` : ''}`;  // ← 不顯示箭頭
+
+          summary.onclick = () => {
+            const page = pages.find(p => p.Title === groupTitle);
+            clearOutline();
+            document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
+            summary.classList.add("active-nav");
+            updateBreadcrumb(["OPMS", groupTitle], page.Page_ID);
+            if (page) {
+              const url = page.View_Mode?.toLowerCase() === "db"
+                ? `db_view.html?pageId=${page.Page_ID}`
+                : `page_view.html?pageId=${page.Page_ID}`;
+              viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+            }
+          };
+
+          details.appendChild(summary);
+
+          if (hasChildren) {
+            const ul = document.createElement("ul");
+            ul.className = "ml-8 mt-2 space-y-1 text-base";
+
+            groupMap[groupTitle].forEach((item) => {
+              const li = document.createElement("li");
+              const a = document.createElement("a");
+              a.innerHTML = renderIcon(item.Icon, item.Title);
+              a.className =
+                "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
+              a.onclick = (e) => {
+                e.stopPropagation();
+                clearOutline();
+                document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
+                a.classList.add("active-nav");
+                updateBreadcrumb(["OPMS", groupTitle, item.Title], item.Page_ID);
+                const url = item.View_Mode?.toLowerCase() === "db"
+                  ? `db_view.html?pageId=${item.Page_ID}`
+                  : `page_view.html?pageId=${item.Page_ID}`;
+                viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+              };
+              li.appendChild(a);
+              ul.appendChild(li);
+            });
+
+            details.appendChild(ul);
+          }
+
+          sidebar.appendChild(details);
+        });
+
+
+        // ✅ 點擊 logo 回首頁
+        if (homePage) {
+          document.getElementById("nav-header").onclick = () => {
+            document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
+            const pageId = homePage.Page_ID;
+            const url = homePage.View_Mode === "db"
+              ? `db_view.html?pageId=${pageId}`
+              : `page_view.html?pageId=${pageId}`;
+            const breadcrumb = ["OPMS", homePage.Title];
+            const iframe = document.createElement("iframe");
+            iframe.src = url;
+            iframe.className = "w-full h-full border-none";
+            iframe.onload = () => {
+              updateBreadcrumb(breadcrumb, pageId);
+            };
+            viewer.innerHTML = "";
+            viewer.appendChild(iframe);
+          };
+          document.getElementById("nav-header").click(); // 預設載入首頁
+        }
+      } catch (err) {
+        document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
+        console.error(err);
+      }
     }
 
-    async function loadInitialPageContent() {
-      const contentElement = document.getElementById('notion-content');
-      if (!currentPageId || currentPageId === "null" || currentPageId === "undefined") {
-        contentElement.innerHTML = `
-          <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
-            <h3 class="font-bold text-lg mb-2">⚠️ 無效的 Page ID</h3>
-            <p>無法載入頁面內容，請確認 Page ID 是否正確。</p>
-            <p class="mt-2 text-sm">當前 Page ID: ${currentPageId ? `"${currentPageId}"` : '未提供'}</p>
-            <button onclick="window.history.back()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              返回上一頁
-            </button>
-          </div>
-        `;
-        return;
+    initSidebar();
+
+   //加入「點擊 Last edited 重新載入」功能
+
+    document.getElementById("last-edited-time").onclick = async () => {
+      const pageId = window.currentPageId;
+      if (!pageId) return;
+
+      try {
+        await fetch(`/api/page?pageId=${pageId}&clear=true`);
+
+        const breadcrumb = Array.from(document.getElementById("breadcrumb-nav").children)
+          .filter(el => el.tagName === "SPAN")
+          .map(el => el.textContent)
+          .filter(t => t !== "/");
+
+        const iframe = document.querySelector("#notion-viewer iframe");
+        if (iframe?.src) {
+          iframe.onload = () => {
+            updateBreadcrumb(breadcrumb, pageId);
+          };
+          iframe.src = iframe.src;
+        }
+
+      } catch (err) {
+        console.error("🔁 Reload failed", err);
       }
+    };
 
-      showLoadingBar();
-      contentElement.innerHTML = loadingHTML;
 
-      if (typeof window.renderBlocks === 'undefined') {
-        const script = document.createElement('script');
-        script.src = '/assets/renderBlocks.js';
-        script.onload = () => loadPageContentById(currentPageId);
-        script.onerror = () => {
-          contentElement.innerHTML = `
-            <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
-              <h3 class="font-bold text-lg mb-2">⚠️ 腳本載入失敗</h3>
-              <p>無法載入 renderBlocks.js</p>
-              <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                重新嘗試
-              </button>
-            </div>
-          `;
-          hideLoadingBar();
-        };
-        document.body.appendChild(script);
-      } else {
-        loadPageContentById(currentPageId);
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', loadInitialPageContent);
-
-    window.addEventListener('popstate', (event) => {
-      if (event.state?.pageId) {
-        currentPageId = event.state.pageId;
-        loadPageContentById(currentPageId);
-      }
-    });
   </script>
 </body>
 </html>
