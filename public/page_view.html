@@ -39,6 +39,16 @@
           const htmlContent = await window.renderBlocks(data.blocks);
           contentElement.innerHTML = htmlContent.join('');
           enhanceInternalLinks();
+
+          // 通知父層更新 breadcrumb
+          window.parent.postMessage({
+            type: 'breadcrumb',
+            payload: {
+              pageId: pageId,
+              path: ['OPMS', data.group || '未分組', data.title || '未命名頁面'] // ← 根據你的 page API 格式取得標題
+            }
+          }, '*');
+
         } else {
           contentElement.innerHTML = '<div class="text-red-600">⚠️ renderBlocks 函數未載入</div>';
         }
