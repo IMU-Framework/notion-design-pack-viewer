@@ -7,6 +7,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-white text-gray-800">
+  <header class="bg-white px-6 py-3 shadow-sm border-b">
+    <nav class="flex justify-between text-sm text-gray-500" id="breadcrumb-bar">
+      <div id="breadcrumb-nav" class="flex space-x-2"></div>
+      <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap"></div>
+    </nav>
+  </header>
+
   <main class="max-w-4xl mx-auto px-6">
     <article id="notion-content" class="space-y-4">
       <!-- 初始載入動畫 -->
@@ -35,20 +42,35 @@
 
         const data = await response.json();
 
+        // 更新 breadcrumb nav
+        const breadcrumb = document.getElementById("breadcrumb-nav");
+        breadcrumb.innerHTML = '';
+        const items = ['OPMS', data.group || '未分組', data.title || '未命名頁面'];
+        items.forEach((text, idx) => {
+          if (idx > 0) {
+            const sep = document.createElement("span");
+            sep.textContent = "/";
+            sep.className = "text-gray-400";
+            breadcrumb.appendChild(sep);
+          }
+          const span = document.createElement("span");
+          span.textContent = text;
+          span.className = idx === items.length - 1 ? "text-gray-700 font-semibold" : "text-gray-500";
+          breadcrumb.appendChild(span);
+        });
+
+        // 更新 last edited time
+        if (data.lastEdited) {
+          const d = new Date(data.lastEdited);
+          const dateStr = d.toLocaleDateString("sv-SE");
+          const timeStr = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
+          document.getElementById("last-edited-time").textContent = `Last edited: ${dateStr} ${timeStr}`;
+        }
+
         if (window.renderBlocks) {
           const htmlContent = await window.renderBlocks(data.blocks);
           contentElement.innerHTML = htmlContent.join('');
           enhanceInternalLinks();
-
-          // 通知父層更新 breadcrumb
-          window.parent.postMessage({
-            type: 'breadcrumb',
-            payload: {
-              pageId: pageId,
-              path: ['OPMS', data.group || '未分組', data.title || '未命名頁面'] // ← 根據你的 page API 格式取得標題
-            }
-          }, '*');
-
         } else {
           contentElement.innerHTML = '<div class="text-red-600">⚠️ renderBlocks 函數未載入</div>';
         }
@@ -120,7 +142,7 @@
     window.addEventListener('popstate', (event) => {
       if (event.state?.pageId) {
         currentPageId = event.state.pageId;
-        loadPageContentById(currentPageId);
+        loadPageContentById(pageId);
       }
     });
   </script>
