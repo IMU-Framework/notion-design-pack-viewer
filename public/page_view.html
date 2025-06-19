@@ -26,13 +26,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     let currentPageId = urlParams.get('pageId');
 
-    const loadingHTML = `
-      <div class="animate-pulse">
-        <div class="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-        <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
-        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
-      </div>
-    `;
+    const loadingHTML = `<div></div>`; // 已由 loading bar 取代
 
     function showLoadingBar() {
       const overlay = document.getElementById('loading-overlay');
