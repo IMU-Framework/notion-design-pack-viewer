@@ -45,7 +45,7 @@
         // 更新 breadcrumb nav
         const breadcrumb = document.getElementById("breadcrumb-nav");
         breadcrumb.innerHTML = '';
-        const items = ['OPMS', data.group || '未分組', data.title || '未命名頁面'];
+        const items = ['OPMS', data.group || '', data.title || '未命名頁面'];
         items.forEach((text, idx) => {
           if (idx > 0) {
             const sep = document.createElement("span");
