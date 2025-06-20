@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OPMS - Guideline</title>
+  <title>OPMS by IMU</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
@@ -11,7 +11,7 @@
 </head>
 <body class="h-screen flex bg-gray-100">
   <div class="flex flex-col w-64 bg-white border-r">
-    <div id="nav-header" class="sticky top-0 z-10 bg-white h-16 flex items-center px-6 border-b cursor-pointer">
+    <div id="nav-header" class="sticky top-0 z-10 bg-white flex items-center p-6 border-b cursor-pointer">
       <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
         <div id="nav-header-loading-bar" class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100"></div>
       </div>
@@ -63,6 +63,7 @@
       setTimeout(() => {
         const navHeader = document.getElementById("nav-header");
         navHeader.innerHTML = `<span class='text-xl font-bold text-blue-900'>${title}</span>`;
+        document.title = `${title}`; // ✅ 更新頁籤標題
       }, 600);
     }
 

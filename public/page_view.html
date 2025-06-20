@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Notion Page Viewer</title>
+  <title>OPMS Page Viewer</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-white text-gray-800">
@@ -47,7 +47,7 @@
         breadcrumb.innerHTML = '';
 
         // ✅ 組成層級：OPMS → group (可省略) → title
-        const items = ['OPMS', ...(data.group ? [data.group] : []), data.title || '未命名頁面'];
+        const items = [ data.databaseTitle || 'OPMS', ...(data.group ? [data.group] : []), data.title || '未命名頁面'];
         
         items.forEach((text, idx) => {
           if (idx > 0) {
