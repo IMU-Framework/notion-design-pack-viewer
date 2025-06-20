@@ -66,6 +66,7 @@ export default async function handler(req, res) {
         lastEdited: cached.lastEdited,
         title: cached.title,
         group: cached.group,
+        databaseTitle: cached.databaseTitle,
         fromCache: true
       });
   }
@@ -74,7 +75,17 @@ export default async function handler(req, res) {
     const pageMeta = await notion.pages.retrieve({ page_id: pageId });
     const lastEdited = pageMeta.last_edited_time;
 
-    // 加這兩個
+    let databaseTitle = null;
+    try {
+      const parent = pageMeta.parent;
+      if (parent?.type === 'database_id') {
+        const dbInfo = await notion.databases.retrieve({ database_id: parent.database_id });
+        databaseTitle = dbInfo.title.map(t => t.plain_text).join('') || null;
+      }
+    } catch (e) {
+      console.warn("Database title 讀取失敗", e);
+    }
+
     const title = pageMeta.properties?.Title?.title?.[0]?.plain_text || '未命名頁面';
     let group = null;
     try {
@@ -88,9 +99,9 @@ export default async function handler(req, res) {
     }
 
     const blocks = await getBlockChildren(pageId);
-    pageCache.set(pageId, { blocks, lastEdited, title, group, timestamp: Date.now() }); // 更新快取
+    pageCache.set(pageId, { blocks, lastEdited, title, group, databaseTitle, timestamp: Date.now() }); // 更新快取
 
-    res.status(200).json({ blocks, lastEdited, title, group });
+    res.status(200).json({ blocks, lastEdited, title, group, databaseTitle });
   } catch (err) {
     console.error("❌ Notion API error in /api/page.js:", err.message);
     res.status(500).json({ error: "Failed to fetch Notion blocks" });
