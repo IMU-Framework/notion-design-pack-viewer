@@ -16,6 +16,7 @@ notion-design-pack-viewer/
 
 ``` 
 ```
+6/18前版本
 notion-design-pack-viewer/
 ├── index.html               # 主入口，包含 sidebar（來自 Notion Database）+ viewer iframe 載入 page_view 或 db_view
 ├── page_view.html           # 單一 Notion Page 頁面呈現，根據 pageId 呼叫 API 並使用 renderBlocks.js 呈現
