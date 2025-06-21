@@ -22,10 +22,15 @@
     <main class="flex-1 overflow-auto bg-white relative">
       <!-- ☰ Mobile toggle icon -->
       <button id="sidebar-toggle" class="absolute top-4 left-4 z-40 md:hidden p-2 text-gray-600 hover:text-gray-900">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-      </button>
+      <!-- ☰ hamburger icon（初始顯示） -->
+      <svg id="icon-bars" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+      <!-- ← chevron-left icon（初始隱藏） -->
+      <svg id="icon-chevron" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </button>
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
     </main>
   </div>
@@ -223,12 +228,21 @@
     const toggleBtn = document.getElementById("sidebar-toggle");
   
     toggleBtn.addEventListener("click", () => {
+      const iconBars = document.getElementById("icon-bars").classList.remove("hidden");
+      const iconChevron = document.getElementById("icon-chevron").classList.add("hidden");
+    
       if (sidebar.classList.contains("-translate-x-full")) {
         sidebar.classList.remove("-translate-x-full");
         sidebar.classList.add("translate-x-0");
+        // 切換 icon：顯示 chevron-left
+        iconBars.classList.add("hidden");
+        iconChevron.classList.remove("hidden");
       } else {
         sidebar.classList.add("-translate-x-full");
         sidebar.classList.remove("translate-x-0");
+        // 切換 icon：顯示 hamburger
+        iconBars.classList.remove("hidden");
+        iconChevron.classList.add("hidden");
       }
     });
     
