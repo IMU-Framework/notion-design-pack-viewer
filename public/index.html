@@ -185,8 +185,11 @@
                 viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
 
                 if (window.innerWidth < 768) {
-                  document.getElementById("sidebar").classList.add("-translate-x-full");
-                  document.getElementById("sidebar").classList.remove("translate-x-0");
+                  sidebar.classList.add("-translate-x-full");
+                  sidebar.classList.remove("translate-x-0");
+                
+                  document.getElementById("icon-bars").classList.remove("hidden");
+                  document.getElementById("icon-chevron").classList.add("hidden");
                 }
               };
               li.appendChild(a);
@@ -228,8 +231,8 @@
     const toggleBtn = document.getElementById("sidebar-toggle");
   
     toggleBtn.addEventListener("click", () => {
-      const iconBars = document.getElementById("icon-bars").classList.remove("hidden");
-      const iconChevron = document.getElementById("icon-chevron").classList.add("hidden");
+      const iconBars = document.getElementById("icon-bars");
+      const iconChevron = document.getElementById("icon-chevron");
     
       if (sidebar.classList.contains("-translate-x-full")) {
         sidebar.classList.remove("-translate-x-full");
