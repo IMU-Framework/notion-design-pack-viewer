@@ -1,40 +1,41 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OPMS by IMU</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/site.webmanifest">
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPMS by IMU</title>
+<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="/apple-touch-icon.png" rel="apple-touch-icon"/>
+<link href="/site.webmanifest" rel="manifest"/>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="h-screen flex bg-gray-100">
-  <div id="sidebar" class="block md:flex fixed md:relative flex-col w-64 h-full md:h-auto bg-white border-r z-50 transition-transform duration-300 transform -translate-x-full md:translate-x-0">
-    <div id="nav-header" class="sticky top-0 z-10 bg-white flex items-center p-6 border-b cursor-pointer">
-      <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-        <div id="nav-header-loading-bar" class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100"></div>
-      </div>
-    </div>
-    <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
-  </div>
-  <div class="flex-1 flex flex-col">
-    <main class="flex-1 overflow-auto bg-white relative">
-      <!-- ☰ Mobile toggle icon -->
-      <button id="sidebar-toggle" class="absolute top-4 left-4 z-40 md:hidden p-2 text-gray-600 hover:text-gray-900">
-      <!-- ☰ hamburger icon（初始顯示） -->
-      <svg id="icon-bars" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-      </svg>
-      <!-- ← chevron-left icon（初始隱藏） -->
-      <svg id="icon-chevron" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-      </svg>
-    </button>
-      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
-    </main>
-  </div>
-  <script>
+<div class="block md:flex fixed md:relative flex-col w-64 h-full md:h-auto bg-white border-r z-50 transition-transform duration-300 transform -translate-x-full md:translate-x-0" id="sidebar">
+<div class="sticky top-0 z-10 bg-white flex items-center p-6 border-b cursor-pointer" id="nav-header">
+<div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+<div class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100" id="nav-header-loading-bar"></div>
+</div>
+<button class="md:hidden p-2 text-gray-600 hover:text-gray-900 hidden" id="sidebar-close">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+<nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
+</div>
+<div class="flex-1 flex flex-col">
+<main class="flex-1 overflow-auto bg-white relative">
+<!-- ☰ Mobile toggle icon -->
+<button class="absolute top-4 left-4 z-40 md:hidden p-2 text-gray-600 hover:text-gray-900" id="sidebar-toggle">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<div class="p-6 space-y-4 overflow-auto h-full" id="notion-viewer"></div>
+</main>
+</div>
+<script>
     async function fetchSidebarData() {
       const res = await fetch("/api/notion");
       if (!res.ok) throw new Error("載入失敗");
@@ -226,7 +227,7 @@
     initSidebar();
 
   </script>
-  <script>
+<script>
     const sidebar = document.getElementById("sidebar");
     const toggleBtn = document.getElementById("sidebar-toggle");
   
@@ -268,5 +269,37 @@
     });
   </script>
 
+
+<script>
+  function openSidebar() {
+    document.getElementById("sidebar").classList.remove("-translate-x-full");
+    document.getElementById("sidebar").classList.add("translate-x-0");
+    document.getElementById("sidebar-toggle").classList.add("hidden");
+    document.getElementById("sidebar-close").classList.remove("hidden");
+  }
+
+  function closeSidebar() {
+    document.getElementById("sidebar").classList.add("-translate-x-full");
+    document.getElementById("sidebar").classList.remove("translate-x-0");
+    document.getElementById("sidebar-toggle").classList.remove("hidden");
+    document.getElementById("sidebar-close").classList.add("hidden");
+  }
+
+  document.getElementById("sidebar-toggle").addEventListener("click", openSidebar);
+  document.getElementById("sidebar-close").addEventListener("click", closeSidebar);
+
+  document.addEventListener("click", (e) => {
+    const sidebar = document.getElementById("sidebar");
+    const toggleBtn = document.getElementById("sidebar-toggle");
+    if (
+      window.innerWidth < 768 &&
+      sidebar.classList.contains("translate-x-0") &&
+      !sidebar.contains(e.target) &&
+      !toggleBtn.contains(e.target)
+    ) {
+      closeSidebar();
+    }
+  });
+</script>
 </body>
 </html>
