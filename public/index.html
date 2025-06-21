@@ -178,6 +178,11 @@
                   ? `db_view.html?pageId=${item.Page_ID}`
                   : `page_view.html?pageId=${item.Page_ID}`;
                 viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+
+                if (window.innerWidth < 768) {
+                  document.getElementById("sidebar").classList.add("-translate-x-full");
+                  document.getElementById("sidebar").classList.remove("translate-x-0");
+                }
               };
               li.appendChild(a);
               ul.appendChild(li);
@@ -226,7 +231,22 @@
         sidebar.classList.remove("translate-x-0");
       }
     });
+    
+    document.addEventListener("click", (e) => {
+      const sidebar = document.getElementById("sidebar");
+      const toggleBtn = document.getElementById("sidebar-toggle");
+    
+      if (
+        window.innerWidth < 768 &&
+        sidebar.classList.contains("translate-x-0") &&
+        !sidebar.contains(e.target) &&
+        !toggleBtn.contains(e.target)
+      ) {
+        sidebar.classList.add("-translate-x-full");
+        sidebar.classList.remove("translate-x-0");
+      }
+    });
   </script>
-  
+
 </body>
 </html>
