@@ -9,12 +9,37 @@
   <link rel="manifest" href="/site.webmanifest">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="h-screen flex bg-gray-100">
+<!-- <body class="h-screen flex bg-gray-100">
   <div class="flex flex-col w-64 bg-white border-r">
     <div id="nav-header" class="sticky top-0 z-10 bg-white flex items-center p-6 border-b cursor-pointer">
       <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
         <div id="nav-header-loading-bar" class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100"></div>
-      </div>
+      </div> -->
+  <!-- Sidebar 容器：Mini 模式起始，支援寬度切換 -->
+<div id="sidebar-container" class="fixed top-0 left-0 h-full z-50 bg-white shadow-md transition-all duration-300 w-14 md:relative md:w-64 flex flex-col border-r">
+
+  <!-- 🔄 Loading Bar（與原始設計相同，保留動畫與 ID） -->
+  <div class="w-full bg-gray-200 h-3 overflow-hidden">
+    <div id="nav-header-loading-bar" class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100"></div>
+  </div>
+  <!-- 🔘 Header：含 toggle icon + 標題（僅展開時顯示） -->
+  <div class="flex items-center justify-between p-4 border-b h-14">
+    <!-- 左側 icon 按鈕 -->
+    <button id="sidebar-toggle" class="text-gray-600 hover:text-gray-900 focus:outline-none">
+      <!-- 預設為 hamburger icon（bars-3） -->
+      <svg id="sidebar-toggle-icon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+    <!-- 右側標題（僅展開 sidebar 時顯示） -->
+    <div id="sidebar-title" class="ml-2 text-blue-900 font-semibold text-lg truncate hidden md:block">
+      OPMS
+    </div>
+  </div>
+  <!-- 導覽區：由 initSidebar() 掛載資料 -->
+  <nav id="sidebar-nav" class="flex-1 overflow-y-auto p-4 space-y-4">Loading...</nav>
+</div>
+
     </div>
     <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
