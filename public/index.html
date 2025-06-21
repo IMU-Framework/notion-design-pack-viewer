@@ -3,7 +3,9 @@
  <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>OPMS by IMU</title>
+  <title>
+   OPMS by IMU
+  </title>
   <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
   <link href="/apple-touch-icon.png" rel="apple-touch-icon"/>
   <link href="/site.webmanifest" rel="manifest"/>
@@ -291,7 +293,7 @@
   document.getElementById("sidebar-toggle").addEventListener("click", openSidebar);
   document.getElementById("sidebar-close").addEventListener("click", closeSidebar);
 
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", function (e) {
     const sidebar = document.getElementById("sidebar");
     const toggleBtn = document.getElementById("sidebar-toggle");
     if (
