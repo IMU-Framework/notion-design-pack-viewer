@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>OPMS Page Viewer</title>
+  <title>Notion Page Viewer</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-white text-gray-800">
   <header class="bg-white px-6 py-3 shadow-sm border-b">
     <nav class="flex justify-between text-sm text-gray-500" id="breadcrumb-bar">
       <div id="breadcrumb-nav" class="flex space-x-2"></div>
-      <div id="last-edited-time" class="text-xs text-gray-400 ml-4 whitespace-nowrap cursor-pointer hover:text-blue-700 transition-colors"></div>
+      <div id="last-edited-time" class="hidden md:block text-xs text-gray-400 ml-4 whitespace-nowrap cursor-pointer hover:text-blue-700 transition-colors"></div>
     </nav>
   </header>
 
@@ -47,7 +47,7 @@
         breadcrumb.innerHTML = '';
 
         // ✅ 組成層級：OPMS → group (可省略) → title
-        const items = [ data.databaseTitle || 'OPMS', ...(data.group ? [data.group] : []), data.title || '未命名頁面'];
+        const items = ['OPMS', ...(data.group ? [data.group] : []), data.title || '未命名頁面'];
         
         items.forEach((text, idx) => {
           if (idx > 0) {
@@ -62,12 +62,13 @@
           breadcrumb.appendChild(span);
         });
 
-        // 更新 last edited time
+        // 更新 last edited time (僅在桌面版顯示)
+        const lastEditedElement = document.getElementById("last-edited-time");
         if (data.lastEdited) {
           const d = new Date(data.lastEdited);
           const dateStr = d.toLocaleDateString("sv-SE");
           const timeStr = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
-          document.getElementById("last-edited-time").textContent = `Last edited: ${dateStr} ${timeStr} ⟳`;
+          lastEditedElement.textContent = `Last edited: ${dateStr} ${timeStr} ⟳`;
         }
 
         if (window.renderBlocks) {
@@ -87,11 +88,11 @@
       const links = document.querySelectorAll('#notion-content a[href]');
       links.forEach(link => {
         const href = link.getAttribute('href');
-        const isInternalPageId = /^\/?[0-9a-f]{32}$/.test(href);
+        const isInternalPageId = /^\\/?[0-9a-f]{32}$/.test(href);
         if (isInternalPageId) {
           link.addEventListener('click', (e) => {
             e.preventDefault();
-            const pageId = href.replace(/^\//, '');
+            const pageId = href.replace(/^\\/, '');
             const newUrl = `${window.location.pathname}?pageId=${pageId}`;
             window.history.pushState({ pageId }, '', newUrl);
             currentPageId = pageId;
