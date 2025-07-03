@@ -8,10 +8,38 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom styles for sidebar animation */
+    .sidebar {
+      transition: transform 0.3s ease-in-out;
+    }
+    .sidebar-hidden {
+      transform: translateX(-100%);
+    }
+    .hamburger-menu {
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
+    .hamburger-hidden {
+      opacity: 0;
+      transform: scale(0.8);
+      pointer-events: none;
+    }
+    /* Backdrop for mobile */
+    .sidebar-backdrop {
+      transition: opacity 0.3s ease-in-out;
+    }
+    .backdrop-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
 </head>
-<body class="h-screen bg-gray-100 relative overflow-hidden">
+<body class="h-screen flex bg-gray-100 relative">
+  <!-- Mobile backdrop -->
+  <div id="sidebar-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden backdrop-hidden sidebar-backdrop"></div>
+  
   <!-- Sidebar -->
-  <div id="sidebar" class="fixed md:static z-20 w-64 h-full bg-white border-r transform md:translate-x-0 transition-transform duration-300 ease-in-out">
+  <div id="sidebar" class="sidebar flex flex-col w-64 bg-white border-r fixed md:relative z-30 h-full md:z-auto">
     <div id="nav-header" class="sticky top-0 z-10 bg-white h-16 flex items-center px-6 border-b cursor-pointer">
       <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
         <div id="nav-header-loading-bar" class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100"></div>
@@ -19,53 +47,84 @@
     </div>
     <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
-
-  <!-- Hamburger Icon -->
-  <button id="hamburger-btn" class="fixed bottom-4 left-4 z-30 md:hidden bg-white p-2 rounded shadow hidden">
-    <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-    </svg>
-  </button>
-
-  <!-- Main Content -->
-  <div class="flex flex-col md:ml-64 h-full">
+  
+  <!-- Main content -->
+  <div class="flex-1 flex flex-col md:ml-0">
     <main class="flex-1 overflow-auto bg-white">
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
     </main>
   </div>
+  
+  <!-- Hamburger menu button -->
+  <button id="hamburger-btn" class="hamburger-menu hamburger-hidden fixed bottom-6 left-6 z-40 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg md:hidden">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+  </button>
 
-  <!-- JS -->
   <script>
+    // Sidebar state management
+    let sidebarVisible = true;
     const sidebar = document.getElementById('sidebar');
-    const hamburger = document.getElementById('hamburger-btn');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const hamburgerBtn = document.getElementById('hamburger-btn');
 
-    // 點擊空白區域收合 sidebar（僅限 mobile）
+    function showSidebar() {
+      sidebarVisible = true;
+      sidebar.classList.remove('sidebar-hidden');
+      backdrop.classList.remove('backdrop-hidden');
+      hamburgerBtn.classList.add('hamburger-hidden');
+    }
+
+    function hideSidebar() {
+      sidebarVisible = false;
+      sidebar.classList.add('sidebar-hidden');
+      backdrop.classList.add('backdrop-hidden');
+      hamburgerBtn.classList.remove('hamburger-hidden');
+    }
+
+    // Check if mobile view
+    function isMobile() {
+      return window.innerWidth < 768; // md breakpoint
+    }
+
+    // Initialize sidebar state based on screen size
+    function initializeSidebarState() {
+      if (isMobile()) {
+        // On mobile, show sidebar initially but prepare for hiding
+        showSidebar();
+      } else {
+        // On desktop, always show sidebar and hide hamburger
+        sidebar.classList.remove('sidebar-hidden');
+        backdrop.classList.add('backdrop-hidden');
+        hamburgerBtn.classList.add('hamburger-hidden');
+      }
+    }
+
+    // Event listeners
+    hamburgerBtn.addEventListener('click', showSidebar);
+    
+    backdrop.addEventListener('click', hideSidebar);
+
+    // Click outside sidebar to hide (mobile only)
     document.addEventListener('click', (e) => {
-      const isMobile = window.innerWidth < 768;
-      const isClickInsideSidebar = sidebar.contains(e.target);
-      const isClickOnHamburger = hamburger.contains(e.target);
-      if (isMobile && !isClickInsideSidebar && !isClickOnHamburger) {
-        sidebar.classList.add('-translate-x-full');
-        hamburger.classList.remove('hidden');
+      if (!isMobile()) return;
+      
+      if (sidebarVisible && 
+          !sidebar.contains(e.target) && 
+          !hamburgerBtn.contains(e.target)) {
+        hideSidebar();
       }
     });
 
-    // 點擊 hamburger 顯示 sidebar
-    hamburger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      sidebar.classList.remove('-translate-x-full');
-      hamburger.classList.add('hidden');
-    });
-
-    // 螢幕調整時恢復桌面狀態
+    // Handle window resize
     window.addEventListener('resize', () => {
-      if (window.innerWidth >= 768) {
-        sidebar.classList.remove('-translate-x-full');
-        hamburger.classList.add('hidden');
-      }
+      initializeSidebarState();
     });
 
-    // 以下保留原本的 sidebar 初始化邏輯
+    // Initialize on load
+    initializeSidebarState();
+
     async function fetchSidebarData() {
       const res = await fetch("/api/notion");
       if (!res.ok) throw new Error("載入失敗");
@@ -109,15 +168,18 @@
     }
 
     async function initSidebar() {
-      const sidebar = document.getElementById("sidebar-nav");
+      const sidebarNav = document.getElementById("sidebar-nav");
       const viewer = document.getElementById("notion-viewer");
-      sidebar.innerHTML = "";
+      sidebarNav.innerHTML = "";
 
       startNavLoading();
 
       try {
         const { pages, databaseTitle } = await fetchSidebarData();
-        if (databaseTitle) finishNavLoading(databaseTitle);
+
+        if (databaseTitle) {
+          finishNavLoading(databaseTitle);
+        }
 
         const activePages = pages.filter((p) => p.Active);
         const homeCandidates = activePages.filter((p) => p.Title === "Home");
@@ -134,7 +196,12 @@
             groupMap[group].push(page);
           } else {
             groupMap[page.Title] = [];
-            parentMeta.push({ title: page.Title, Order: page.Order ?? null, CreatedTime: page.CreatedTime, Icon: page.Icon || null });
+            parentMeta.push({
+              title: page.Title,
+              Order: page.Order ?? null,
+              CreatedTime: page.CreatedTime,
+              Icon: page.Icon || null,
+            });
           }
         });
 
@@ -165,8 +232,8 @@
 
           const iconHTML = groupIcon
             ? (groupIcon.startsWith("http")
-              ? `<img src="${groupIcon}" class="w-4 h-4 mr-2 inline" />`
-              : `<span class="mr-2">${groupIcon}</span>`)
+                ? `<img src="${groupIcon}" class="w-4 h-4 mr-2 inline" />`
+                : `<span class="mr-2">${groupIcon}</span>`)
             : "";
 
           summary.innerHTML = `<span class="flex items-center">${iconHTML}${groupTitle}</span>` +
@@ -183,6 +250,10 @@
                 : `page_view.html?pageId=${page.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
             }
+            // Hide sidebar on mobile after selection
+            if (isMobile()) {
+              hideSidebar();
+            }
           };
 
           details.appendChild(summary);
@@ -195,7 +266,7 @@
               const li = document.createElement("li");
               const a = document.createElement("a");
               a.innerHTML = renderIcon(item.Icon, item.Title);
-              a.className = "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200";
+              a.className = "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
               a.onclick = (e) => {
                 e.stopPropagation();
                 clearOutline();
@@ -205,6 +276,10 @@
                   ? `db_view.html?pageId=${item.Page_ID}`
                   : `page_view.html?pageId=${item.Page_ID}`;
                 viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+                // Hide sidebar on mobile after selection
+                if (isMobile()) {
+                  hideSidebar();
+                }
               };
               li.appendChild(a);
               ul.appendChild(li);
@@ -213,7 +288,7 @@
             details.appendChild(ul);
           }
 
-          sidebar.appendChild(details);
+          sidebarNav.appendChild(details);
         });
 
         if (homePage) {
@@ -228,6 +303,10 @@
             iframe.className = "w-full h-full border-none";
             viewer.innerHTML = "";
             viewer.appendChild(iframe);
+            // Hide sidebar on mobile after selection
+            if (isMobile()) {
+              hideSidebar();
+            }
           };
           document.getElementById("nav-header").click();
         }
