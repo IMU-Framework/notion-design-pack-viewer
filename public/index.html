@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OPMS by IMU</title>
+  <title>OPMS - Guideline</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="h-screen bg-gray-100 relative md:flex">
+<body class="h-screen bg-gray-100 relative overflow-hidden">
   <!-- Sidebar -->
-  <div id="sidebar" class="fixed md:static inset-y-0 left-0 z-30 w-64 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0">
-    <div id="nav-header" class="sticky top-0 z-10 bg-white flex items-center p-6 border-b cursor-pointer">
+  <div id="sidebar" class="fixed md:static z-20 w-64 h-full bg-white border-r transform md:translate-x-0 transition-transform duration-300 ease-in-out">
+    <div id="nav-header" class="sticky top-0 z-10 bg-white h-16 flex items-center px-6 border-b cursor-pointer">
       <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
         <div id="nav-header-loading-bar" class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100"></div>
       </div>
@@ -20,40 +20,52 @@
     <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
 
-  <!-- Toggle Button -->
-  <button id="sidebar-toggle" class="md:hidden fixed top-4 left-4 z-40 bg-blue-600 text-white p-2 rounded shadow">
-    ☰
+  <!-- Hamburger Icon -->
+  <button id="hamburger-btn" class="fixed bottom-4 left-4 z-30 md:hidden bg-white p-2 rounded shadow hidden">
+    <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+    </svg>
   </button>
 
-  <!-- Main content -->
-  <div class="flex-1 flex flex-col" id="main-content">
+  <!-- Main Content -->
+  <div class="flex flex-col md:ml-64 h-full">
     <main class="flex-1 overflow-auto bg-white">
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
     </main>
   </div>
 
+  <!-- JS -->
   <script>
-    // Mobile sidebar toggle logic
-    const sidebar = document.getElementById("sidebar");
-    const toggleBtn = document.getElementById("sidebar-toggle");
-    const mainContent = document.getElementById("main-content");
+    const sidebar = document.getElementById('sidebar');
+    const hamburger = document.getElementById('hamburger-btn');
 
-    toggleBtn.addEventListener("click", () => {
-      sidebar.classList.remove("-translate-x-full");
-    });
-
-    mainContent.addEventListener("click", () => {
-      if (window.innerWidth < 768) {
-        sidebar.classList.add("-translate-x-full");
+    // 點擊空白區域收合 sidebar（僅限 mobile）
+    document.addEventListener('click', (e) => {
+      const isMobile = window.innerWidth < 768;
+      const isClickInsideSidebar = sidebar.contains(e.target);
+      const isClickOnHamburger = hamburger.contains(e.target);
+      if (isMobile && !isClickInsideSidebar && !isClickOnHamburger) {
+        sidebar.classList.add('-translate-x-full');
+        hamburger.classList.remove('hidden');
       }
     });
 
-    if (window.innerWidth < 768) {
-      sidebar.classList.add("-translate-x-full");
-    }
-  </script>
+    // 點擊 hamburger 顯示 sidebar
+    hamburger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebar.classList.remove('-translate-x-full');
+      hamburger.classList.add('hidden');
+    });
 
-  <script>
+    // 螢幕調整時恢復桌面狀態
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768) {
+        sidebar.classList.remove('-translate-x-full');
+        hamburger.classList.add('hidden');
+      }
+    });
+
+    // 以下保留原本的 sidebar 初始化邏輯
     async function fetchSidebarData() {
       const res = await fetch("/api/notion");
       if (!res.ok) throw new Error("載入失敗");
@@ -93,7 +105,6 @@
       setTimeout(() => {
         const navHeader = document.getElementById("nav-header");
         navHeader.innerHTML = `<span class='text-xl font-bold text-blue-900'>${title}</span>`;
-        document.title = `${title}`;
       }, 600);
     }
 
@@ -106,10 +117,7 @@
 
       try {
         const { pages, databaseTitle } = await fetchSidebarData();
-
-        if (databaseTitle) {
-          finishNavLoading(databaseTitle);
-        }
+        if (databaseTitle) finishNavLoading(databaseTitle);
 
         const activePages = pages.filter((p) => p.Active);
         const homeCandidates = activePages.filter((p) => p.Title === "Home");
@@ -126,12 +134,7 @@
             groupMap[group].push(page);
           } else {
             groupMap[page.Title] = [];
-            parentMeta.push({
-              title: page.Title,
-              Order: page.Order ?? null,
-              CreatedTime: page.CreatedTime,
-              Icon: page.Icon || null,
-            });
+            parentMeta.push({ title: page.Title, Order: page.Order ?? null, CreatedTime: page.CreatedTime, Icon: page.Icon || null });
           }
         });
 
@@ -162,8 +165,8 @@
 
           const iconHTML = groupIcon
             ? (groupIcon.startsWith("http")
-                ? `<img src="${groupIcon}" class="w-4 h-4 mr-2 inline" />`
-                : `<span class="mr-2">${groupIcon}</span>`)
+              ? `<img src="${groupIcon}" class="w-4 h-4 mr-2 inline" />`
+              : `<span class="mr-2">${groupIcon}</span>`)
             : "";
 
           summary.innerHTML = `<span class="flex items-center">${iconHTML}${groupTitle}</span>` +
@@ -192,7 +195,7 @@
               const li = document.createElement("li");
               const a = document.createElement("a");
               a.innerHTML = renderIcon(item.Icon, item.Title);
-              a.className = "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200 active-nav";
+              a.className = "flex items-center px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg cursor-pointer transition-colors duration-200";
               a.onclick = (e) => {
                 e.stopPropagation();
                 clearOutline();
