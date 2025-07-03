@@ -240,13 +240,6 @@
           const details = document.createElement("details");
           details.classList.add("group");
 
-          // ✅ Add event listener for mobile accordion behavior
-          details.addEventListener('toggle', () => {
-            if (details.open) {
-              handleMobileAccordion(details);
-            }
-          });
-
           const summary = document.createElement("summary");
           summary.className = `flex items-center justify-between cursor-pointer px-3 py-2 text-base ${hasChildren ? "font-semibold" : "font-normal"} text-gray-800 hover:bg-blue-50 rounded-lg`;
 
@@ -259,7 +252,9 @@
           summary.innerHTML = `<span class="flex items-center">${iconHTML}${groupTitle}</span>` +
             (hasChildren ? `<svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>` : "");
 
-          summary.onclick = () => {
+          // ✅ 修正：使用 addEventListener 而不是 onclick，並處理手風琴行為
+          summary.addEventListener('click', (e) => {
+            // 處理頁面導航
             const page = pages.find(p => p.Title === groupTitle);
             clearOutline();
             document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
@@ -270,11 +265,19 @@
                 : `page_view.html?pageId=${page.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
             }
+            
+            // ✅ 處理手風琴行為（在下一個事件循環中執行，確保 details.open 狀態已更新）
+            setTimeout(() => {
+              if (details.open) {
+                handleMobileAccordion(details);
+              }
+            }, 0);
+            
             // Hide sidebar on mobile after selection
             if (isMobile()) {
               hideSidebar();
             }
-          };
+          });
 
           details.appendChild(summary);
 
