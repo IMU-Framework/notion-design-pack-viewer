@@ -146,7 +146,7 @@
     window.addEventListener('popstate', (event) => {
       if (event.state?.pageId) {
         currentPageId = event.state.pageId;
-        loadPageContentById(pageId);
+        loadPageContentById(currentPageId); // ✅ 修正：使用 currentPageId 而不是 pageId
       }
     });
 
