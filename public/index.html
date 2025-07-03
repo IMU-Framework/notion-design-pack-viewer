@@ -252,7 +252,7 @@
           summary.innerHTML = `<span class="flex items-center">${iconHTML}${groupTitle}</span>` +
             (hasChildren ? `<svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>` : "");
 
-          // ✅ 修正：使用 addEventListener 而不是 onclick，並處理手風琴行為
+          // ✅ 修正：移除自動收合 sidebar 的行為
           summary.addEventListener('click', (e) => {
             // 處理頁面導航
             const page = pages.find(p => p.Title === groupTitle);
@@ -273,10 +273,10 @@
               }
             }, 0);
             
-            // Hide sidebar on mobile after selection
-            if (isMobile()) {
-              hideSidebar();
-            }
+            // ❌ 移除：不再自動收合 sidebar
+            // if (isMobile()) {
+            //   hideSidebar();
+            // }
           });
 
           details.appendChild(summary);
@@ -299,10 +299,10 @@
                   ? `db_view.html?pageId=${item.Page_ID}`
                   : `page_view.html?pageId=${item.Page_ID}`;
                 viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-                // Hide sidebar on mobile after selection
-                if (isMobile()) {
-                  hideSidebar();
-                }
+                // ❌ 移除：不再自動收合 sidebar
+                // if (isMobile()) {
+                //   hideSidebar();
+                // }
               };
               li.appendChild(a);
               ul.appendChild(li);
@@ -326,10 +326,10 @@
             iframe.className = "w-full h-full border-none";
             viewer.innerHTML = "";
             viewer.appendChild(iframe);
-            // Hide sidebar on mobile after selection
-            if (isMobile()) {
-              hideSidebar();
-            }
+            // ❌ 移除：不再自動收合 sidebar
+            // if (isMobile()) {
+            //   hideSidebar();
+            // }
           };
           document.getElementById("nav-header").click();
         }
