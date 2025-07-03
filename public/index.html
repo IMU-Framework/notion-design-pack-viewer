@@ -1,48 +1,60 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
- <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OPMS by IMU</title>
-  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
-  <link href="/apple-touch-icon.png" rel="apple-touch-icon"/>
-  <link href="/site.webmanifest" rel="manifest"/>
-  <script src="https://cdn.tailwindcss.com">
-  </script>
- </head>
- <body class="h-screen flex bg-gray-100">
-  <div class="block md:flex fixed md:relative flex-col w-64 h-full md:h-auto bg-white border-r z-50 transition-transform duration-300 transform -translate-x-full md:translate-x-0" id="sidebar">
-   <div class="sticky top-0 z-10 bg-white flex items-center p-6 border-b cursor-pointer" id="nav-header">
-    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-     <div class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100" id="nav-header-loading-bar">
-     </div>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-screen bg-gray-100 relative md:flex">
+  <!-- Sidebar -->
+  <div id="sidebar" class="fixed md:static inset-y-0 left-0 z-30 w-64 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0">
+    <div id="nav-header" class="sticky top-0 z-10 bg-white flex items-center p-6 border-b cursor-pointer">
+      <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+        <div id="nav-header-loading-bar" class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100"></div>
+      </div>
     </div>
-    <button class="md:hidden p-2 text-gray-600 hover:text-gray-900 hidden" id="sidebar-close">
-     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-      </path>
-     </svg>
-    </button>
-   </div>
-   <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">
-    Loading...
-   </nav>
+    <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
-  <div class="flex-1 flex flex-col">
-   <main class="flex-1 overflow-auto bg-white relative">
-    <!-- ☰ Mobile toggle icon -->
-    <button class="absolute top-4 left-4 z-40 md:hidden p-2 text-gray-600 hover:text-gray-900" id="sidebar-toggle">
-     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-      </path>
-     </svg>
-    </button>
-    <div class="p-6 space-y-4 overflow-auto h-full" id="notion-viewer">
-    </div>
-   </main>
+
+  <!-- Toggle Button -->
+  <button id="sidebar-toggle" class="md:hidden fixed top-4 left-4 z-40 bg-blue-600 text-white p-2 rounded shadow">
+    ☰
+  </button>
+
+  <!-- Main content -->
+  <div class="flex-1 flex flex-col" id="main-content">
+    <main class="flex-1 overflow-auto bg-white">
+      <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
+    </main>
   </div>
+
   <script>
-   async function fetchSidebarData() {
+    // Mobile sidebar toggle logic
+    const sidebar = document.getElementById("sidebar");
+    const toggleBtn = document.getElementById("sidebar-toggle");
+    const mainContent = document.getElementById("main-content");
+
+    toggleBtn.addEventListener("click", () => {
+      sidebar.classList.remove("-translate-x-full");
+    });
+
+    mainContent.addEventListener("click", () => {
+      if (window.innerWidth < 768) {
+        sidebar.classList.add("-translate-x-full");
+      }
+    });
+
+    if (window.innerWidth < 768) {
+      sidebar.classList.add("-translate-x-full");
+    }
+  </script>
+
+  <script>
+    async function fetchSidebarData() {
       const res = await fetch("/api/notion");
       if (!res.ok) throw new Error("載入失敗");
       return res.json();
@@ -81,7 +93,7 @@
       setTimeout(() => {
         const navHeader = document.getElementById("nav-header");
         navHeader.innerHTML = `<span class='text-xl font-bold text-blue-900'>${title}</span>`;
-        document.title = `${title}`; // ✅ 更新頁籤標題
+        document.title = `${title}`;
       }, 600);
     }
 
@@ -90,13 +102,13 @@
       const viewer = document.getElementById("notion-viewer");
       sidebar.innerHTML = "";
 
-      startNavLoading(); // ✅ 啟動模擬 loading bar
+      startNavLoading();
 
       try {
         const { pages, databaseTitle } = await fetchSidebarData();
 
         if (databaseTitle) {
-          finishNavLoading(databaseTitle); // ✅ 成功後補滿並替換為標題
+          finishNavLoading(databaseTitle);
         }
 
         const activePages = pages.filter((p) => p.Active);
@@ -190,14 +202,6 @@
                   ? `db_view.html?pageId=${item.Page_ID}`
                   : `page_view.html?pageId=${item.Page_ID}`;
                 viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
-
-                if (window.innerWidth < 768) {
-                  sidebar.classList.add("-translate-x-full");
-                  sidebar.classList.remove("translate-x-0");
-                
-                  document.getElementById("icon-bars").classList.remove("hidden");
-                  document.getElementById("icon-chevron").classList.add("hidden");
-                }
               };
               li.appendChild(a);
               ul.appendChild(li);
@@ -232,77 +236,5 @@
 
     initSidebar();
   </script>
-  <script>
-   const sidebar = document.getElementById("sidebar");
-    const toggleBtn = document.getElementById("sidebar-toggle");
-  
-    toggleBtn.addEventListener("click", () => {
-      const iconBars = document.getElementById("icon-bars");
-      const iconChevron = document.getElementById("icon-chevron");
-    
-      if (sidebar.classList.contains("-translate-x-full")) {
-        sidebar.classList.remove("-translate-x-full");
-        sidebar.classList.add("translate-x-0");
-        // 切換 icon：顯示 chevron-left
-        iconBars.classList.add("hidden");
-        iconChevron.classList.remove("hidden");
-      } else {
-        sidebar.classList.add("-translate-x-full");
-        sidebar.classList.remove("translate-x-0");
-        // 切換 icon：顯示 hamburger
-        iconBars.classList.remove("hidden");
-        iconChevron.classList.add("hidden");
-      }
-    });
-    
-    document.addEventListener("click", (e) => {
-      const sidebar = document.getElementById("sidebar");
-      const toggleBtn = document.getElementById("sidebar-toggle");
-    
-      if (
-        window.innerWidth < 768 &&
-        sidebar.classList.contains("translate-x-0") &&
-        !sidebar.contains(e.target) &&
-        !toggleBtn.contains(e.target)
-      ) {
-        sidebar.classList.add("-translate-x-full");
-        sidebar.classList.remove("translate-x-0");
-        //  icon 切換
-        document.getElementById("icon-bars").classList.remove("hidden");
-        document.getElementById("icon-chevron").classList.add("hidden");
-      }
-    });
-  </script>
-  <script>
-   function openSidebar() {
-    document.getElementById("sidebar").classList.remove("-translate-x-full");
-    document.getElementById("sidebar").classList.add("translate-x-0");
-    document.getElementById("sidebar-toggle").classList.add("hidden");
-    document.getElementById("sidebar-close").classList.remove("hidden");
-  }
-
-  function closeSidebar() {
-    document.getElementById("sidebar").classList.add("-translate-x-full");
-    document.getElementById("sidebar").classList.remove("translate-x-0");
-    document.getElementById("sidebar-toggle").classList.remove("hidden");
-    document.getElementById("sidebar-close").classList.add("hidden");
-  }
-
-  document.getElementById("sidebar-toggle").addEventListener("click", openSidebar);
-  document.getElementById("sidebar-close").addEventListener("click", closeSidebar);
-
-  document.addEventListener("click", function (e) {
-    const sidebar = document.getElementById("sidebar");
-    const toggleBtn = document.getElementById("sidebar-toggle");
-    if (
-      window.innerWidth < 768 &&
-      sidebar.classList.contains("translate-x-0") &&
-      !sidebar.contains(e.target) &&
-      !toggleBtn.contains(e.target)
-    ) {
-      closeSidebar();
-    }
-  });
-  </script>
- </body>
+</body>
 </html>
