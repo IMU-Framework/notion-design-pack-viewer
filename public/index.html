@@ -88,6 +88,19 @@
       return window.innerWidth < 768; // md breakpoint
     }
 
+    // ✅ Mobile accordion behavior: only one details open at a time
+    function handleMobileAccordion(targetDetails) {
+      if (!isMobile()) return; // Only apply on mobile
+      
+      // Close all other details elements
+      const allDetails = document.querySelectorAll('#sidebar-nav details');
+      allDetails.forEach(details => {
+        if (details !== targetDetails && details.open) {
+          details.open = false;
+        }
+      });
+    }
+
     // Initialize sidebar state based on screen size
     function initializeSidebarState() {
       if (isMobile()) {
@@ -226,6 +239,13 @@
 
           const details = document.createElement("details");
           details.classList.add("group");
+
+          // ✅ Add event listener for mobile accordion behavior
+          details.addEventListener('toggle', () => {
+            if (details.open) {
+              handleMobileAccordion(details);
+            }
+          });
 
           const summary = document.createElement("summary");
           summary.className = `flex items-center justify-between cursor-pointer px-3 py-2 text-base ${hasChildren ? "font-semibold" : "font-normal"} text-gray-800 hover:bg-blue-50 rounded-lg`;
