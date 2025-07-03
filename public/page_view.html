@@ -88,11 +88,11 @@
       const links = document.querySelectorAll('#notion-content a[href]');
       links.forEach(link => {
         const href = link.getAttribute('href');
-        const isInternalPageId = /^\\/?[0-9a-f]{32}$/.test(href);
+        const isInternalPageId = /^\/?[0-9a-f]{32}$/.test(href); // ✅ 修正正則表達式
         if (isInternalPageId) {
           link.addEventListener('click', (e) => {
             e.preventDefault();
-            const pageId = href.replace(/^\\/, '');
+            const pageId = href.replace(/^\//, ''); // ✅ 修正正則表達式
             const newUrl = `${window.location.pathname}?pageId=${pageId}`;
             window.history.pushState({ pageId }, '', newUrl);
             currentPageId = pageId;
@@ -146,19 +146,19 @@
     window.addEventListener('popstate', (event) => {
       if (event.state?.pageId) {
         currentPageId = event.state.pageId;
-        loadPageContentById(currentPageId); // ✅ 修正：使用 currentPageId 而不是 pageId
+        loadPageContentById(currentPageId);
       }
     });
 
     // ✅ 加入 Refresh 按鈕功能
     document.getElementById("last-edited-time").onclick = async () => {
-    if (!currentPageId) return;
-    try {
+      if (!currentPageId) return;
+      try {
         await fetch(`/api/page?pageId=${currentPageId}&clear=true`);
         loadPageContentById(currentPageId); // 重新載入當前頁面
-    } catch (err) {
+      } catch (err) {
         console.error("🔁 Reload failed", err);
-    }
+      }
     };
 
   </script>
