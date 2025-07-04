@@ -3,27 +3,161 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OPMS by IMU</title>
+  <title>OPMS - Guideline</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom styles for sidebar animation */
+    .sidebar {
+      transition: transform 0.3s ease-in-out;
+    }
+    .sidebar-hidden {
+      transform: translateX(-100%);
+    }
+    .hamburger-menu {
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
+    .hamburger-hidden {
+      opacity: 0;
+      transform: scale(0.8);
+      pointer-events: none;
+    }
+    /* Backdrop for mobile */
+    .sidebar-backdrop {
+      transition: opacity 0.3s ease-in-out;
+    }
+    .backdrop-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
 </head>
-<body class="h-screen flex bg-gray-100">
-  <div class="flex flex-col w-64 bg-white border-r">
-    <div id="nav-header" class="sticky top-0 z-10 bg-white flex items-center p-6 border-b cursor-pointer">
+<body class="h-screen flex bg-gray-100 relative">
+  <!-- Mobile backdrop -->
+  <div id="sidebar-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden backdrop-hidden sidebar-backdrop"></div>
+  
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar flex flex-col w-64 bg-white border-r fixed md:relative z-30 h-full md:z-auto">
+    <div id="nav-header" class="sticky top-0 z-10 bg-white h-16 flex items-center px-6 border-b cursor-pointer">
       <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
         <div id="nav-header-loading-bar" class="bg-blue-500 h-3 w-0 transition-all duration-300 ease-out opacity-100"></div>
       </div>
     </div>
     <nav class="flex-1 overflow-y-auto p-4 space-y-4" id="sidebar-nav">Loading...</nav>
   </div>
-  <div class="flex-1 flex flex-col">
+  
+  <!-- Main content -->
+  <div class="flex-1 flex flex-col md:ml-0">
     <main class="flex-1 overflow-auto bg-white">
       <div id="notion-viewer" class="p-6 space-y-4 overflow-auto h-full"></div>
     </main>
   </div>
+  
+  <!-- Hamburger menu button -->
+  <button id="hamburger-btn" class="hamburger-menu hamburger-hidden fixed top-6 right-6 z-40 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg md:hidden">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+  </button>
+
   <script>
+    // ✅ 全域變數管理
+    let sidebarVisible = true;
+    let isInitializing = false; // ✅ 防止重複初始化
+    let globalClickHandler = null; // ✅ 追蹤全域點擊處理器
+    let currentHomePage = null; // ✅ 儲存 home page 資料
+    
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const viewer = document.getElementById('notion-viewer');
+
+    function showSidebar() {
+      sidebarVisible = true;
+      sidebar.classList.remove('sidebar-hidden');
+      backdrop.classList.remove('backdrop-hidden');
+      hamburgerBtn.classList.add('hamburger-hidden');
+    }
+
+    function hideSidebar() {
+      sidebarVisible = false;
+      sidebar.classList.add('sidebar-hidden');
+      backdrop.classList.add('backdrop-hidden');
+      hamburgerBtn.classList.remove('hamburger-hidden');
+    }
+
+    // Check if mobile view
+    function isMobile() {
+      return window.innerWidth < 768; // md breakpoint
+    }
+
+    // ✅ Mobile accordion behavior: only one details open at a time
+    function handleMobileAccordion(targetDetails) {
+      if (!isMobile()) return; // Only apply on mobile
+      
+      // Close all other details elements
+      const allDetails = document.querySelectorAll('#sidebar-nav details');
+      allDetails.forEach(details => {
+        if (details !== targetDetails && details.open) {
+          details.open = false;
+        }
+      });
+    }
+
+    // Initialize sidebar state based on screen size
+    function initializeSidebarState() {
+      if (isMobile()) {
+        // On mobile, show sidebar initially but prepare for hiding
+        showSidebar();
+      } else {
+        // On desktop, always show sidebar and hide hamburger
+        sidebar.classList.remove('sidebar-hidden');
+        backdrop.classList.add('backdrop-hidden');
+        hamburgerBtn.classList.add('hamburger-hidden');
+      }
+    }
+
+    // ✅ 清理全域事件監聽器
+    function cleanupGlobalEventListeners() {
+      if (globalClickHandler) {
+        document.removeEventListener('click', globalClickHandler);
+        globalClickHandler = null;
+      }
+    }
+
+    // ✅ 設置全域事件監聽器
+    function setupGlobalEventListeners() {
+      cleanupGlobalEventListeners(); // 先清理舊的
+      
+      // Click outside sidebar to hide (mobile only)
+      globalClickHandler = (e) => {
+        if (!isMobile()) return;
+        
+        if (sidebarVisible && 
+            !sidebar.contains(e.target) && 
+            !hamburgerBtn.contains(e.target)) {
+          hideSidebar();
+        }
+      };
+      
+      document.addEventListener('click', globalClickHandler);
+    }
+
+    // Event listeners - 只設置一次
+    hamburgerBtn.addEventListener('click', showSidebar);
+    backdrop.addEventListener('click', hideSidebar);
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      initializeSidebarState();
+    });
+
+    // Initialize on load
+    initializeSidebarState();
+    setupGlobalEventListeners();
+
     async function fetchSidebarData() {
       const res = await fetch("/api/notion");
       if (!res.ok) throw new Error("載入失敗");
@@ -46,8 +180,15 @@
 
     function startNavLoading() {
       const bar = document.getElementById("nav-header-loading-bar");
+      if (!bar) return; // ✅ 防護檢查
       navLoadingProgress = 0;
       bar.style.width = "0%";
+      
+      // ✅ 清理舊的 interval
+      if (navLoadingInterval) {
+        clearInterval(navLoadingInterval);
+      }
+      
       navLoadingInterval = setInterval(() => {
         if (navLoadingProgress < 90) {
           navLoadingProgress += Math.random() * 10;
@@ -57,34 +198,73 @@
     }
 
     function finishNavLoading(title) {
-      clearInterval(navLoadingInterval);
+      if (navLoadingInterval) {
+        clearInterval(navLoadingInterval);
+        navLoadingInterval = null;
+      }
+      
       const bar = document.getElementById("nav-header-loading-bar");
+      if (!bar) return; // ✅ 防護檢查
+      
       bar.style.width = "100%";
       setTimeout(() => {
         const navHeader = document.getElementById("nav-header");
-        navHeader.innerHTML = `<span class='text-xl font-bold text-blue-900'>${title}</span>`;
-        document.title = `${title}`; // ✅ 更新頁籤標題
+        if (navHeader) {
+          navHeader.innerHTML = `<span class='text-xl font-bold text-blue-900'>${title}</span>`;
+          // ✅ 重新綁定 home page 點擊事件
+          setupHomePageHandler();
+        }
       }, 600);
     }
 
-    async function initSidebar() {
-      const sidebar = document.getElementById("sidebar-nav");
-      const viewer = document.getElementById("notion-viewer");
-      sidebar.innerHTML = "";
+    // ✅ 獨立的 home page 處理函數
+    function setupHomePageHandler() {
+      const navHeader = document.getElementById("nav-header");
+      if (!navHeader || !currentHomePage) return;
+      
+      navHeader.style.cursor = 'pointer';
+      navHeader.onclick = () => {
+        document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
+        const pageId = currentHomePage.Page_ID;
+        const url = currentHomePage.View_Mode === "db"
+          ? `db_view.html?pageId=${pageId}`
+          : `page_view.html?pageId=${pageId}`;
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        iframe.className = "w-full h-full border-none";
+        viewer.innerHTML = "";
+        viewer.appendChild(iframe);
+      };
+    }
 
-      startNavLoading(); // ✅ 啟動模擬 loading bar
+    async function initSidebar() {
+      // ✅ 防止重複初始化
+      if (isInitializing) return;
+      isInitializing = true;
+      
+      const sidebarNav = document.getElementById("sidebar-nav");
+      if (!sidebarNav) {
+        isInitializing = false;
+        return;
+      }
+      
+      sidebarNav.innerHTML = "";
+      startNavLoading();
 
       try {
         const { pages, databaseTitle } = await fetchSidebarData();
 
         if (databaseTitle) {
-          finishNavLoading(databaseTitle); // ✅ 成功後補滿並替換為標題
+          finishNavLoading(databaseTitle);
         }
 
         const activePages = pages.filter((p) => p.Active);
         const homeCandidates = activePages.filter((p) => p.Title === "Home");
         const homePage = homeCandidates.sort((a, b) => new Date(a.CreatedTime) - new Date(b.CreatedTime))[0];
         const nonHomePages = activePages.filter((p) => p.Title !== "Home");
+
+        // ✅ 儲存 home page 資料
+        currentHomePage = homePage;
 
         const groupMap = {};
         const parentMeta = [];
@@ -139,7 +319,8 @@
           summary.innerHTML = `<span class="flex items-center">${iconHTML}${groupTitle}</span>` +
             (hasChildren ? `<svg class="w-5 h-5 transform group-open:rotate-90 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>` : "");
 
-          summary.onclick = () => {
+          summary.addEventListener('click', (e) => {
+            // 處理頁面導航
             const page = pages.find(p => p.Title === groupTitle);
             clearOutline();
             document.querySelectorAll(".active-nav").forEach((link) => link.classList.remove("active-nav"));
@@ -150,7 +331,14 @@
                 : `page_view.html?pageId=${page.Page_ID}`;
               viewer.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
             }
-          };
+            
+            // 處理手風琴行為
+            setTimeout(() => {
+              if (details.open) {
+                handleMobileAccordion(details);
+              }
+            }, 0);
+          });
 
           details.appendChild(summary);
 
@@ -180,32 +368,35 @@
             details.appendChild(ul);
           }
 
-          sidebar.appendChild(details);
+          sidebarNav.appendChild(details);
         });
 
+        // ✅ 初始化 home page
         if (homePage) {
-          document.getElementById("nav-header").onclick = () => {
-            document.querySelectorAll(".active-nav").forEach((e) => e.classList.remove("active-nav"));
-            const pageId = homePage.Page_ID;
-            const url = homePage.View_Mode === "db"
-              ? `db_view.html?pageId=${pageId}`
-              : `page_view.html?pageId=${pageId}`;
-            const iframe = document.createElement("iframe");
-            iframe.src = url;
-            iframe.className = "w-full h-full border-none";
-            viewer.innerHTML = "";
-            viewer.appendChild(iframe);
-          };
-          document.getElementById("nav-header").click();
+          setupHomePageHandler();
+          // 觸發初始載入
+          const navHeader = document.getElementById("nav-header");
+          if (navHeader && navHeader.onclick) {
+            navHeader.onclick();
+          }
         }
       } catch (err) {
-        document.getElementById("sidebar-nav").innerHTML = "❌ 無法載入資料";
+        sidebarNav.innerHTML = "❌ 無法載入資料";
         console.error(err);
+      } finally {
+        isInitializing = false; // ✅ 重置初始化狀態
       }
     }
 
-    initSidebar();
+    // ✅ 頁面卸載時清理資源
+    window.addEventListener('beforeunload', () => {
+      cleanupGlobalEventListeners();
+      if (navLoadingInterval) {
+        clearInterval(navLoadingInterval);
+      }
+    });
 
+    initSidebar();
   </script>
 </body>
 </html>
