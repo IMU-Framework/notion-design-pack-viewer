@@ -47,7 +47,7 @@
         breadcrumb.innerHTML = '';
 
         // ✅ 組成層級：OPMS → group (可省略) → title
-        const items = ['OPMS', ...(data.group ? [data.group] : []), data.title || '未命名頁面'];
+        const items = [data.databaseTitle || 'OPMS', ...(data.group ? [data.group] : []), data.title || '未命名頁面'];
         
         items.forEach((text, idx) => {
           if (idx > 0) {
