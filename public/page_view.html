@@ -7,16 +7,16 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-white text-gray-800">
-  <!-- Sticky Header -->
-  <header class="sticky top-0 z-50 bg-white px-4 sm:px-6 py-3 shadow-sm border-b backdrop-blur-sm bg-white/95">
-    <nav class="flex justify-between text-sm text-gray-500" id="breadcrumb-bar">
-      <div id="breadcrumb-nav" class="flex space-x-2"></div>
-      <div id="last-edited-time" class="hidden md:block text-xs text-gray-400 ml-4 whitespace-nowrap cursor-pointer hover:text-blue-700 transition-colors"></div>
+  <!-- Fixed Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-white px-4 sm:px-6 py-3 shadow-sm border-b backdrop-blur-sm bg-white/95">
+    <nav class="flex justify-between items-center text-sm text-gray-500" id="breadcrumb-bar">
+      <div id="breadcrumb-nav" class="flex items-center space-x-2 min-w-0 flex-1"></div>
+      <div id="last-edited-time" class="hidden md:block text-xs text-gray-400 ml-4 whitespace-nowrap cursor-pointer hover:text-blue-700 transition-colors flex-shrink-0"></div>
     </nav>
   </header>
 
-  <!-- Main Content -->
-  <main class="max-w-4xl mx-auto px-4 sm:px-6 pt-6">
+  <!-- Main Content with top padding to account for fixed header -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-8">
     <article id="notion-content" class="space-y-4">
       <!-- 初始載入動畫 -->
     </article>
@@ -34,55 +34,104 @@
       </div>
     `;
 
+    // 檢測是否為手機裝置
+    function isMobile() {
+      return window.innerWidth < 768; // md breakpoint
+    }
+
     async function loadPageContentById(pageId) {
+      if (!pageId) {
+        console.error("PageId is required");
+        return;
+      }
+
       const contentElement = document.getElementById('notion-content');
+      if (!contentElement) {
+        console.error("Content element not found");
+        return;
+      }
+
       contentElement.innerHTML = loadingHTML;
 
       try {
         const response = await fetch(`/api/page?pageId=${pageId}`);
-        if (!response.ok) throw new Error("無法取得頁面內容");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: 無法取得頁面內容`);
+        }
 
         const data = await response.json();
+        if (!data) {
+          throw new Error("回應資料為空");
+        }
 
-        // ✅ 更新 breadcrumb nav
+        // ✅ 更新 breadcrumb nav - 響應式顯示
         const breadcrumb = document.getElementById("breadcrumb-nav");
-        breadcrumb.innerHTML = '';
+        if (breadcrumb) {
+          breadcrumb.innerHTML = '';
 
-        // ✅ 組成層級：OPMS → group (可省略) → title
-        const items = [data.databaseTitle || 'OPMS', ...(data.group ? [data.group] : []), data.title || '未命名頁面'];
-        
-        items.forEach((text, idx) => {
-          if (idx > 0) {
-            const sep = document.createElement("span");
-            sep.textContent = "/";
-            sep.className = "text-gray-400 mx-1";
-            breadcrumb.appendChild(sep);
+          // 🔧 手機版不顯示 databaseTitle，桌面版顯示
+          const items = [];
+          if (!isMobile() && data.databaseTitle) {
+            items.push(data.databaseTitle);
           }
-          const span = document.createElement("span");
-          span.textContent = text;
-          span.className = idx === items.length - 1 ? "text-gray-700 font-semibold" : "text-gray-500 hover:text-gray-700";
-          breadcrumb.appendChild(span);
-        });
+          if (data.group) {
+            items.push(data.group);
+          }
+          items.push(data.title || '未命名頁面');
+          
+          items.forEach((text, idx) => {
+            if (idx > 0) {
+              const sep = document.createElement("span");
+              sep.textContent = "/";
+              sep.className = "text-gray-400 mx-1 flex-shrink-0";
+              breadcrumb.appendChild(sep);
+            }
+            const span = document.createElement("span");
+            span.textContent = text;
+            span.className = idx === items.length - 1 
+              ? "text-gray-700 font-semibold truncate" 
+              : "text-gray-500 hover:text-gray-700 truncate";
+            breadcrumb.appendChild(span);
+          });
+        }
 
         // 更新 last edited time (僅在桌面版顯示)
         const lastEditedElement = document.getElementById("last-edited-time");
-        if (data.lastEdited) {
-          const d = new Date(data.lastEdited);
-          const dateStr = d.toLocaleDateString("sv-SE");
-          const timeStr = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
-          lastEditedElement.textContent = `Last edited: ${dateStr} ${timeStr} ⟳`;
+        if (lastEditedElement && data.lastEdited) {
+          try {
+            const d = new Date(data.lastEdited);
+            if (!isNaN(d.getTime())) {
+              const dateStr = d.toLocaleDateString("sv-SE");
+              const timeStr = d.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
+              lastEditedElement.textContent = `Last edited: ${dateStr} ${timeStr} ⟳`;
+            }
+          } catch (dateError) {
+            console.warn("日期格式錯誤:", dateError);
+          }
         }
 
-        if (window.renderBlocks) {
-          const htmlContent = await window.renderBlocks(data.blocks);
-          contentElement.innerHTML = htmlContent.join('');
-          enhanceInternalLinks();
+        if (window.renderBlocks && typeof window.renderBlocks === 'function') {
+          const htmlContent = await window.renderBlocks(data.blocks || []);
+          if (Array.isArray(htmlContent)) {
+            contentElement.innerHTML = htmlContent.join('');
+            enhanceInternalLinks();
+          } else {
+            throw new Error("renderBlocks 回傳格式錯誤");
+          }
         } else {
-          contentElement.innerHTML = '<div class="text-red-600">⚠️ renderBlocks 函數未載入</div>';
+          contentElement.innerHTML = '<div class="text-red-600">⚠️ renderBlocks 函數未載入或不可用</div>';
         }
       } catch (error) {
         console.error("載入失敗:", error);
-        contentElement.innerHTML = `<div class="text-red-600">⚠️ 載入失敗：${error.message}</div>`;
+        contentElement.innerHTML = `
+          <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
+            <h3 class="font-bold text-lg mb-2">⚠️ 載入失敗</h3>
+            <p>${error.message}</p>
+            <button onclick="loadPageContentById('${pageId}')" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              重試
+            </button>
+          </div>
+        `;
       }
     }
 
@@ -90,22 +139,31 @@
       const links = document.querySelectorAll('#notion-content a[href]');
       links.forEach(link => {
         const href = link.getAttribute('href');
-        const isInternalPageId = /^\/?[0-9a-f]{32}$/.test(href);
-        if (isInternalPageId) {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const pageId = href.replace(/^\//, '');
-            const newUrl = `${window.location.pathname}?pageId=${pageId}`;
-            window.history.pushState({ pageId }, '', newUrl);
-            currentPageId = pageId;
-            loadPageContentById(pageId);
-          });
+        if (href) {
+          const isInternalPageId = /^\/?[0-9a-f]{32}$/.test(href);
+          if (isInternalPageId) {
+            link.addEventListener('click', (e) => {
+              e.preventDefault();
+              const pageId = href.replace(/^\//, '');
+              if (pageId && pageId !== currentPageId) {
+                const newUrl = `${window.location.pathname}?pageId=${pageId}`;
+                window.history.pushState({ pageId }, '', newUrl);
+                currentPageId = pageId;
+                loadPageContentById(pageId);
+              }
+            });
+          }
         }
       });
     }
 
     async function loadInitialPageContent() {
       const contentElement = document.getElementById('notion-content');
+      if (!contentElement) {
+        console.error("Content element not found");
+        return;
+      }
+
       if (!currentPageId || currentPageId === "null" || currentPageId === "undefined") {
         contentElement.innerHTML = `
           <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
@@ -125,8 +183,12 @@
       if (typeof window.renderBlocks === 'undefined') {
         const script = document.createElement('script');
         script.src = '/assets/renderBlocks.js';
-        script.onload = () => loadPageContentById(currentPageId);
-        script.onerror = () => {
+        script.onload = () => {
+          console.log("renderBlocks.js loaded successfully");
+          loadPageContentById(currentPageId);
+        };
+        script.onerror = (error) => {
+          console.error("Failed to load renderBlocks.js:", error);
           contentElement.innerHTML = `
             <div class="text-red-600 p-4 border border-red-300 rounded bg-red-50">
               <h3 class="font-bold text-lg mb-2">⚠️ 腳本載入失敗</h3>
@@ -143,10 +205,25 @@
       }
     }
 
+    // 視窗大小改變時重新渲染 breadcrumb
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (currentPageId) {
+          // 只更新 breadcrumb，不重新載入整個頁面
+          const breadcrumb = document.getElementById("breadcrumb-nav");
+          if (breadcrumb && breadcrumb.children.length > 0) {
+            loadPageContentById(currentPageId);
+          }
+        }
+      }, 250);
+    });
+
     window.addEventListener('DOMContentLoaded', loadInitialPageContent);
 
     window.addEventListener('popstate', (event) => {
-      if (event.state?.pageId) {
+      if (event.state?.pageId && event.state.pageId !== currentPageId) {
         currentPageId = event.state.pageId;
         loadPageContentById(currentPageId);
       }
